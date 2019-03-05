@@ -45,6 +45,7 @@ DECLARE_FUNCTIONPTR(HRESULT, D3D12ResourceMap, ID3D12Resource *dResource, UINT s
 	LOG_ONCE(__FUNCTION__);
 
 	HRESULT result = oD3D12ResourceMap(dResource, subresource, pReadRange, ppData);
+	ResourceTempData<std::pair<ID3D12Resource *, UINT>, VOID *>::SetTempMapData(std::make_pair(dResource, subresource), *ppData);
 	RecordStart
 	MemStream* streaminstance = GetStreamFromThreadID();
 	streaminstance->write(Resource_Map);
@@ -79,13 +80,22 @@ DECLARE_FUNCTIONPTR(void, D3D12ResourceUnmap, ID3D12Resource *dResource, UINT su
 	if (desc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
 	{
 		size_t buffersize = desc.Width;	
-		void *tempPtr = NULL;
-		
-			
-		oD3D12ResourceMap(dResource, subresource, pWrittenRange,&tempPtr);
-		streaminstance->write(buffersize);
-		streaminstance->write(tempPtr, buffersize);
-		oD3D12ResourceUnmap(dResource, subresource, pWrittenRange);
+		void *tempPtr = ResourceTempData<std::pair<ID3D12Resource *, UINT>, void *>::GetTempMapData(std::make_pair(dResource, subresource));
+		if (tempPtr == NULL) {
+
+			oD3D12ResourceMap(dResource, subresource, pWrittenRange, &tempPtr);
+			streaminstance->write(buffersize);
+			streaminstance->write(tempPtr, buffersize);
+			oD3D12ResourceUnmap(dResource, subresource, pWrittenRange);
+			//buffersize = 0;
+			//streaminstance->write(buffersize);
+			//Log_Detail_0(Enum_other1, "Error! resource map cannot found paired result!");
+		}
+		else {
+			//Log_Detail_0(Enum_other1, "Correct! paired result found! bufferSize: %d", buffersize);
+			streaminstance->write(buffersize);
+			streaminstance->write(tempPtr, buffersize);
+		}
 			
 		
 		
