@@ -770,26 +770,15 @@ BOOL RTsSingleHandleToDescriptorRange, const D3D12_CPU_DESCRIPTOR_HANDLE *pDepth
 	{
 		for (UINT i = 0; i < NumRenderTargetDescriptors; i++)
 		{
-			D3D12_CPU_DESCRIPTOR_HANDLE handle = pRenderTargetDescriptors[i];
-			streamInstance->write(handle, pdevice, D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+			streamInstance->write(pRenderTargetDescriptors[i]);
 		}
 	}
 
 	streamInstance->write(RTsSingleHandleToDescriptorRange);
 
-	if (pDepthStencilDescriptor == NULL)
-	{
-		bool nul = true;
-		streamInstance->write(nul);
-	}
-	else
-	{
-		bool nul = false;
-		streamInstance->write(nul);
-		D3D12_CPU_DESCRIPTOR_HANDLE handle = *pDepthStencilDescriptor;
-		streamInstance->write(handle, pdevice, D3D12_DESCRIPTOR_HEAP_TYPE_DSV); 
-	}
+	streamInstance->writePointerValue(pDepthStencilDescriptor);
 
+	
 	RecordEnd
 
 	return;
@@ -806,16 +795,16 @@ FLOAT Depth, UINT8 Stencil, UINT NumRects, const D3D12_RECT *pRects)  //72 + 47
 	streamInstance->write(CommandEnum::CommandList_ClearDepthStencilView);
 	streamInstance->write(dCommandList);
 	
-	IID riid = __uuidof(ID3D12Device);
-	ID3D12Device* pdevice;
-	dCommandList->GetDevice(riid, (void**)&pdevice);
-	//oD3D12CommandListGetDevice(dCommandList, riid, (void**)&pdevice);
-	streamInstance->write(DepthStencilView, pdevice, D3D12_DESCRIPTOR_HEAP_TYPE_DSV);  
+	
+	streamInstance->write(DepthStencilView);  
 	streamInstance->write(ClearFlags);
 	streamInstance->write(Depth);
 	streamInstance->write(Stencil);
 	streamInstance->write(NumRects);
-	streamInstance->writePointerValue(pRects);
+	if (NumRects > 0)
+	{
+		streamInstance->write(pRects, NumRects *sizeof(D3D12_RECT));
+	}
 	RecordEnd
 
 	return;
@@ -833,15 +822,15 @@ DECLARE_FUNCTIONPTR(void, D3D12ClearRenderTargetView, ID3D12GraphicsCommandList 
 	MemStream *streamInstance = GetStreamFromThreadID();
 	streamInstance->write(CommandEnum::CommandList_ClearRenderTargetView);
 	streamInstance->write(dCommandList);
-	IID riid = __uuidof(ID3D12Device);
-	ID3D12Device* pdevice;
-	dCommandList->GetDevice(riid, (void**)&pdevice);
-	//oD3D12CommandListGetDevice(dCommandList, riid, (void**)&pdevice);
-	streamInstance->write(RenderTargetView, pdevice, D3D12_DESCRIPTOR_HEAP_TYPE_RTV); 
+	
+	streamInstance->write(RenderTargetView); 
 
 	streamInstance->write(ColorRGBA, 4 * sizeof(FLOAT));
 	streamInstance->write(NumRects);
-	streamInstance->writePointerValue(pRects);
+	if (NumRects > 0)
+	{
+		streamInstance->write(pRects, NumRects * sizeof(D3D12_RECT));
+	}
 
 	RecordEnd
 

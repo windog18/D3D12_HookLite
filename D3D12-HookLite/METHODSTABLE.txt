@@ -149,3 +149,72 @@ D3D12 Methods Table:
 [147] GetContainingOutput
 [148] GetFrameStatistics
 [149] GetLastPresentCount
+
+Device
+base bias 0
+total function: 44
+[0]   QueryInterface
+[1]   AddRef
+[2]   Release
+[3]   GetPrivateData
+[4]   SetPrivateData
+[5]   SetPrivateDataInterface
+[6]   SetName
+[7]   GetNodeCount
+[8]   CreateCommandQueue
+[9]   CreateCommandAllocator
+[10]  CreateGraphicsPipelineState
+[11]  CreateComputePipelineState
+[12]  CreateCommandList
+[13]  CheckFeatureSupport
+[14]  CreateDescriptorHeap
+[15]  GetDescriptorHandleIncrementSize
+[16]  CreateRootSignature
+[17]  CreateConstantBufferView
+[18]  CreateShaderResourceView
+[19]  CreateUnorderedAccessView
+[20]  CreateRenderTargetView
+[21]  CreateDepthStencilView
+[22]  CreateSampler
+[23]  CopyDescriptors
+[24]  CopyDescriptorsSimple
+[25]  GetResourceAllocationInfo
+[26]  GetCustomHeapProperties
+[27]  CreateCommittedResource
+[28]  CreateHeap
+[29]  CreatePlacedResource
+[30]  CreateReservedResource
+[31]  CreateSharedHandle
+[32]  OpenSharedHandle
+[33]  OpenSharedHandleByName
+[34]  MakeResident
+[35]  Evict
+[36]  CreateFence
+[37]  GetDeviceRemovedReason
+[38]  GetCopyableFootprints
+[39]  CreateQueryHeap
+[40]  SetStablePowerState
+[41]  CreateCommandSignature
+[42]  GetResourceTiling
+[43]  GetAdapterLuid
+
+
+////base bias 44 + 19 + 9 + 60 + 18 = 150
+////total function: 15
+
+////QueryInterface 0
+////AddRef         1
+////Release        2
+////GetPrivateData 3
+////SetPrivateData 4
+////SetPrivateDataInterface 5
+////SetName                 6
+////GetDevice               7
+////Map                     8
+////Unmap                   9
+////GetDesc                10
+////GetGPUVirtualAddress   11
+////WriteToSubresource     12
+////ReadFromSubresource    13
+////GetHeapProperties      14
+////

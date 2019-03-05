@@ -72,10 +72,6 @@ public:
 
 	void write(const D3D12_COMMAND_SIGNATURE_DESC& desc);
 
-	void write(D3D12_CPU_DESCRIPTOR_HANDLE& handle, ID3D12Device* device, D3D12_DESCRIPTOR_HEAP_TYPE typ);
-
-	//void read(D3D12_CPU_DESCRIPTOR_HANDLE& handle, ID3D12Device* device, D3D12_DESCRIPTOR_HEAP_TYPE typ);
-
 	void read(D3D12_STREAM_OUTPUT_DESC& desc);
 
 	void read(D3D12_COMMAND_SIGNATURE_DESC& desc);

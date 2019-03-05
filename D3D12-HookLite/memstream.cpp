@@ -126,39 +126,7 @@ void MemStream::write(CommandEnum enu)
 	nameListCache << commandName;
 }
 
-void MemStream::write(D3D12_CPU_DESCRIPTOR_HANDLE& handle, ID3D12Device* device, D3D12_DESCRIPTOR_HEAP_TYPE typ)
-{
-#ifndef REPLAY
-// 	UINT offsetsize = device->GetDescriptorHandleIncrementSize(typ);
-// 
-// 	ID3D12DescriptorHeap* heap = ResourceTempData<UINT64, ID3D12DescriptorHeap *,0>::GetTempMapData(handle.ptr); //XD3D12DescriptorHeap::m_handlemap1[handle.ptr];
-// 	INT64 ptr = handle.ptr;
-// 	UINT offset = 0;
-// 
-// 	while (heap == NULL && ptr > 0)
-// 	{
-// 		if (offset > 50) {
-// 			break;
-// 		}
-// 		ptr -= offsetsize;
-// 		offset++;
-// 		heap = ResourceTempData<UINT64, ID3D12DescriptorHeap *, 0>::GetTempMapData(ptr); //XD3D12DescriptorHeap::m_handlemap1[ptr];
-// 	}
-// 
-// 	if (heap == NULL) {
-// 		offset = 0;
-// 		//Log_Detail_1(Enum_other1, "not found desc Heap");
-// 	}
-// 	else {
-// 		//Log_Detail_1(Enum_other1, "found desc Heap %d-------------------------------------------",heap);
-// 	}
-// 
-// 	write(heap);
-// 	write(offset);
-#endif
 
-
-}
 
 
 
