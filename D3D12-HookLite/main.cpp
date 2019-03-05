@@ -3,79 +3,22 @@
 ////////////////
 
 #include "main.h"
+
+#include "D3D12DeviceHookInterface.h"
+#include "D3D12ResourceHookInterface.h"
+#include "D3D12CommandListHookInterface.h"
+#include "D3D12CommandQueueHookInterface.h"
+
+
 #include <sstream>
 
 
-#define DECLARE_FUNCTIONPTR(DReturnType,DFunctionName,...) \
-typedef DReturnType(__stdcall* DFunctionName)(__VA_ARGS__);\
-DFunctionName o##DFunctionName = NULL; \
-DReturnType __stdcall hk##DFunctionName(__VA_ARGS__) \
 
-
-
-#define CREATE_HOOKPAIR(methodVirtualPtr,DFunctionName) \
-MH_CreateHook(methodVirtualPtr, hk##DFunctionName, (LPVOID*)&o##DFunctionName)
 
 
 void HookWindowProc(HWND hWnd);
 typedef long(__stdcall* Present12) (IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Flags);
 Present12 oPresent12 = NULL;
-
-
-DECLARE_FUNCTIONPTR(HRESULT, D3D12CreateRootSignature, ID3D12Device *dDevice, UINT nodeMask, const void *pBlobWithRootSignature, SIZE_T blobLengthInBytes,
-REFIID riid, void **ppvRootSignature)
-{
-	Log("[d3d12] D3D12CreateRootSignature");
-	HRESULT ert = oD3D12CreateRootSignature(dDevice, nodeMask, pBlobWithRootSignature, blobLengthInBytes, riid, ppvRootSignature);
-	
- 	RecordStart
- 	MemStream* streaminstance = GetStreamFromThreadID();
- 	streaminstance->write(Device_CreateRootSignature);
- 	streaminstance->write(dDevice);
- 	streaminstance->write(nodeMask);
- 	streaminstance->write(blobLengthInBytes);
- 	streaminstance->write(pBlobWithRootSignature, blobLengthInBytes);
- 	streaminstance->write(riid);
- 	streaminstance->write(*ppvRootSignature);
- 	RecordEnd
-	
-	return ert;
-}
-
-DECLARE_FUNCTIONPTR(HRESULT, D3D12CreateComputePipelineState, ID3D12Device *dDevice, const D3D12_COMPUTE_PIPELINE_STATE_DESC *pDesc, REFIID riid, void **ppPipelineState) //11
-{
-	Log("[d3d12] D3D12CreateComputePipelineState");
-	auto res = oD3D12CreateComputePipelineState(dDevice, pDesc, riid, ppPipelineState);
-	
- 	RecordStart
- 	MemStream* streaminstance = GetStreamFromThreadID();
- 	streaminstance->write(Device_CreateComputePipelineState);
- 	streaminstance->write(dDevice);
- 	streaminstance->write(*pDesc);
- 	streaminstance->write(riid);
- 	streaminstance->write(*ppPipelineState);
- 	RecordEnd
-	
-	return res;
-}
-
-//=========================================================================================================================//
-DECLARE_FUNCTIONPTR(HRESULT, D3D12CreateGraphicsPipelineState, ID3D12Device *dDevice, const D3D12_GRAPHICS_PIPELINE_STATE_DESC *pDesc, REFIID riid, void **ppPipelineState) //10
-{
-	auto res = oD3D12CreateGraphicsPipelineState(dDevice, pDesc, riid, ppPipelineState);
-	
- 	RecordStart
- 	MemStream* streaminstance = GetStreamFromThreadID();
- 	streaminstance->write(Device_CreateGraphicsPipelineState);
-	streaminstance->write(dDevice);
- 	streaminstance->write(*pDesc);
- 	streaminstance->write(riid);
- 	streaminstance->write(*ppPipelineState);
- 	RecordEnd
-	
-	return res;
-}
-/////
 
 long __stdcall hkPresent12(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Flags)
 {
@@ -192,12 +135,12 @@ LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARA
 		}
 	}
 	if (msg == 77) { //F1
-		TempCluster::GetInstance()->SetRecording(false);
-		TempCluster::GetInstance()->SetFrameTagForAll(CommandEnum::end_File);
-		TempCluster::GetInstance()->WriteAllBufferToResult();
-
-		//Log("record togglled!");
-		//ToggleBeginRecordState();
+		if (TempCluster::GetInstance()->IsRecording()) {
+			TempCluster::GetInstance()->SetRecording(false);
+			TempCluster::GetInstance()->SetFrameTagForAll(CommandEnum::end_File);
+			TempCluster::GetInstance()->WriteAllBufferToResult();
+			TempCluster::GetInstance()->ResetRecordState();
+		}
 	}
 
 	//// if(msg == 264){ alt + ?
@@ -286,10 +229,8 @@ int dx12Thread()
 
 		MH_STATUS createResult;
 		do{
-			createResult = MH_CreateHook((LPVOID)dx12::getMethodsTable()[10], hkD3D12CreateGraphicsPipelineState, (LPVOID*)&oD3D12CreateGraphicsPipelineState);
-			MH_CreateHook((LPVOID)dx12::getMethodsTable()[11], hkD3D12CreateComputePipelineState, (LPVOID*)&oD3D12CreateComputePipelineState);
-			MH_CreateHook((LPVOID)dx12::getMethodsTable()[16], hkD3D12CreateRootSignature, (LPVOID*)&oD3D12CreateRootSignature);
-			MH_CreateHook((LPVOID)dx12::getMethodsTable()[140], hkPresent12, (LPVOID*)&oPresent12);
+
+			createResult = MH_CreateHook((LPVOID)dx12::getMethodsTable()[140], hkPresent12, (LPVOID*)&oPresent12);
 			Sleep(10);
 			if (createResult != MH_OK) {
 				OutputDebugStringA("create failed! sleep for a while");
@@ -298,11 +239,7 @@ int dx12Thread()
 
 
 		try {
-
-			MH_STATUS enableStat = MH_EnableHook((LPVOID)dx12::getMethodsTable()[10]);
-			MH_EnableHook((LPVOID)dx12::getMethodsTable()[11]);
-			MH_STATUS enableStat2 = MH_EnableHook((LPVOID)dx12::getMethodsTable()[16]);
-			MH_EnableHook((LPVOID)dx12::getMethodsTable()[140]);
+			MH_STATUS enableStat = MH_EnableHook((LPVOID)dx12::getMethodsTable()[140]);
 			if (enableStat == MH_OK) {
 				OutputDebugStringA("enable hook success!");
 			}
@@ -311,6 +248,9 @@ int dx12Thread()
 			OutputDebugStringA("hook failed");
 		}
 
+		CreateHookD3D12ResourceInterface(dx12::getMethodsTable());
+		CreateHookD3D12DeviceInterface(dx12::getMethodsTable());
+		//CreateHookD3D12CommandListInterface(dx12::getMethodsTable());
 
 	}
 

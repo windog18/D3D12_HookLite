@@ -153,6 +153,12 @@
     <ClCompile Include="UWP.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Common.h" />
+    <ClInclude Include="D3D12CommandListHookInterface.h" />
+    <ClInclude Include="D3D12CommandQueueHookInterface.h" />
+    <ClInclude Include="D3D12DeviceHookInterface.h" />
+    <ClInclude Include="D3D12ResourceHookInterface.h" />
+    <ClInclude Include="D3D12SwapChainHookInterface.h" />
     <ClInclude Include="main.h" />
     <ClInclude Include="memstream.h" />
     <ClInclude Include="Minhook\src\buffer.h" />

@@ -1,12 +1,9 @@
-#include <Windows.h>
-#include <stdint.h>
-#include <dxgi.h>
-#include <d3d12.h>
-#include "d3dx12.h"
+#include "Common.h"
+
 #pragma comment(lib, "d3d12.lib")
-#include "MinHook/include/MinHook.h"
 #include "memstream.h"
 #include "TempCluster.h"
+
 //=========================================================================================================================//
 
 #include <fstream>

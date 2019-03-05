@@ -1,6 +1,43 @@
 #pragma once
 #include "memstream.h"
 #include <map>
+
+class MemStream;
+template<typename Key, typename Value, int N = 0>
+class ResourceTempData {
+public:
+
+	static void SetTempMapData(Key threadID, Value ptr) {
+		std::lock_guard<std::mutex> lock(m_sMutex);
+		m_sTempMap[threadID] = ptr;
+	}
+
+
+	static Value GetTempMapData(Key threadID) {
+		Value ptr = NULL;
+		{
+			std::lock_guard<std::mutex> lock(m_sMutex);
+			if (m_sTempMap.find(threadID) != m_sTempMap.end())
+				ptr = m_sTempMap[threadID];
+		}
+		return ptr;
+	}
+
+	static void Reset() {
+		std::lock_guard<std::mutex> lock(m_sMutex);
+		m_sTempMap.clear();
+	}
+private:
+	static std::map<Key, Value>  m_sTempMap;
+
+	static std::mutex m_sMutex;
+};
+
+#define IMPLEMENT_RESOURCE_DATA(Key, Value, N0) \
+std::map<Key, Value> ResourceTempData<Key, Value,N0>::m_sTempMap; \
+std::mutex ResourceTempData<Key, Value,N0>::m_sMutex;
+
+void ResetRecordState();
 class TempCluster
 {
 public:
@@ -33,6 +70,8 @@ public:
 	}
 	void SetFrameTagForAll(CommandEnum Tag);
 	void WriteAllBufferToResult();
+
+	void ResetRecordState();
 	MemStream *GetOrCreateMemStream(DWORD threadID);
 private:
 	static TempCluster *m_sSingleton;

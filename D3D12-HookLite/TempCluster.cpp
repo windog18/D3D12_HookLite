@@ -3,6 +3,15 @@
 #include <experimental/filesystem>
 namespace fs = std::experimental::filesystem;
 
+std::map<std::pair<ID3D12Resource *, UINT>, void *> ResourceTempData<std::pair<ID3D12Resource *, UINT>, void *>::m_sTempMap;
+std::mutex ResourceTempData<std::pair<ID3D12Resource *, UINT>, void *>::m_sMutex;
+
+//IMPLEMENT_RESOURCE_DATA(std::pair<ID3D12Resource *, UINT>, void *,0)  :????????FIXED ME!
+IMPLEMENT_RESOURCE_DATA(UINT64, ID3D12DescriptorHeap*, 0)
+IMPLEMENT_RESOURCE_DATA(UINT64, ID3D12DescriptorHeap*, 1)
+IMPLEMENT_RESOURCE_DATA(UINT64, ID3D12Resource*, 0)
+
+
 TempCluster * TempCluster::m_sSingleton = nullptr;
 
 inline std::string narrow(std::wstring const& text)
@@ -98,4 +107,29 @@ MemStream * TempCluster::GetOrCreateMemStream(DWORD threadID)
 
 	}
 	return m_sRecordMemStreamMap[threadID];
+}
+
+
+void TempCluster::ResetRecordState()
+{
+	std::lock_guard<std::mutex> guard(m_sMutex);
+	if (m_sRecordMemStreamMap.size() > 0)
+		for (std::map<DWORD, MemStream *>::iterator it = m_sRecordMemStreamMap.begin(); it != m_sRecordMemStreamMap.end(); it++) {
+			delete it->second;
+		}
+	m_sRecordMemStreamMap.clear();
+}
+
+
+
+inline void ResetRecordState()
+{
+	///ugly way to do so,try to optimize me!!
+	ResourceTempData<std::pair<ID3D12Resource *, UINT>, void *>::Reset();
+	ResourceTempData<UINT64, ID3D12DescriptorHeap*, 0>::Reset();
+	ResourceTempData<UINT64, ID3D12DescriptorHeap*, 1>::Reset();
+	ResourceTempData<UINT64, ID3D12Resource*>::Reset();
+
+
+	TempCluster::GetInstance()->ResetRecordState();
 }
