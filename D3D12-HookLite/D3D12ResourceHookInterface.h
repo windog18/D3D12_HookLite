@@ -113,11 +113,17 @@ DECLARE_FUNCTIONPTR(D3D12_GPU_VIRTUAL_ADDRESS,D3D12GetGPUVirtualAddress, ID3D12R
 {
 	LOG_ONCE(__FUNCTION__);
 	
-	auto res = oD3D12GetGPUVirtualAddress(dResource);
-
+	D3D12_GPU_VIRTUAL_ADDRESS res = oD3D12GetGPUVirtualAddress(dResource);
+	RecordStart
+	MemStream* streaminstance = GetStreamFromThreadID();
+	streaminstance->write(Resource_GetGPUVirtualAddress);
+	streaminstance->write(dResource);
+	streaminstance->write(res);
+	RecordEnd
+/*
 #if DECLARE_STATIC
 	ResourceTempData<UINT64, ID3D12Resource *>::SetTempMapData(res, dResource);
-#endif
+#endif*/
 	return res;
 }
 
