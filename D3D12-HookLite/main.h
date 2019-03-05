@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <dxgi.h>
 #include <d3d12.h>
+#include "d3dx12.h"
 #pragma comment(lib, "d3d12.lib")
 #include "MinHook/include/MinHook.h"
 #include "memstream.h"
@@ -71,11 +72,8 @@ namespace dx12
 
 	RenderType::Enum getRenderType();
 
-#if _M_X64
+
 	uint64_t* getMethodsTable();
-#elif defined _M_IX86
-	uint32_t* getMethodsTable();
-#endif
 }
 
 
@@ -193,6 +191,32 @@ dx12::Status::Enum dx12::init(RenderType::Enum _renderType)
 					return Status::UnknownError;
 				}
 
+				ID3D12Resource *d3dResources;
+				if (device->CreateCommittedResource(&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+					D3D12_HEAP_FLAG_NONE,
+					&CD3DX12_RESOURCE_DESC::Buffer(1),
+					D3D12_RESOURCE_STATE_GENERIC_READ,
+					nullptr,
+					IID_PPV_ARGS(&d3dResources)) < 0)
+				{
+					::DestroyWindow(window);
+					::UnregisterClass(windowClass.lpszClassName, windowClass.hInstance);
+					return Status::UnknownError;
+				}
+
+				ID3D12DescriptorHeap *rtvHeap;
+				D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
+				rtvHeapDesc.NumDescriptors = 1;
+				rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+				rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+				if (device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&rtvHeap)) < 0)
+				{
+					::DestroyWindow(window);
+					::UnregisterClass(windowClass.lpszClassName, windowClass.hInstance);
+					return Status::UnknownError;
+				}
+
+
 				DXGI_RATIONAL refreshRate;
 				refreshRate.Numerator = 60;
 				refreshRate.Denominator = 1;
@@ -227,24 +251,22 @@ dx12::Status::Enum dx12::init(RenderType::Enum _renderType)
 					return Status::UnknownError;
 				}
 
-#if _M_X64
 				g_methodsTable = (uint64_t*)::calloc(150, sizeof(uint64_t));
 				memcpy(g_methodsTable, *(uint64_t**)device, 44 * sizeof(uint64_t));
 				memcpy(g_methodsTable + 44, *(uint64_t**)commandQueue, 19 * sizeof(uint64_t));
 				memcpy(g_methodsTable + 44 + 19, *(uint64_t**)commandAllocator, 9 * sizeof(uint64_t));
 				memcpy(g_methodsTable + 44 + 19 + 9, *(uint64_t**)commandList, 60 * sizeof(uint64_t));
 				memcpy(g_methodsTable + 44 + 19 + 9 + 60, *(uint64_t**)swapChain, 18 * sizeof(uint64_t));
-#elif defined _M_IX86
-				g_methodsTable = (uint32_t*)::calloc(150, sizeof(uint32_t));
-				memcpy(g_methodsTable, *(uint32_t**)device, 44 * sizeof(uint32_t));
-				memcpy(g_methodsTable + 44, *(uint32_t**)commandQueue, 19 * sizeof(uint32_t));
-				memcpy(g_methodsTable + 44 + 19, *(uint32_t**)commandAllocator, 9 * sizeof(uint32_t));
-				memcpy(g_methodsTable + 44 + 19 + 9, *(uint32_t**)commandList, 60 * sizeof(uint32_t));
-				memcpy(g_methodsTable + 44 + 19 + 9 + 60, *(uint32_t**)swapChain, 18 * sizeof(uint32_t));
-#endif
+
 
 				device->Release();
 				device = NULL;
+
+				rtvHeap->Release();
+				rtvHeap = NULL;
+
+				d3dResources->Release();
+				d3dResources = NULL;
 
 				commandQueue->Release();
 				commandQueue = NULL;
@@ -281,15 +303,11 @@ dx12::RenderType::Enum dx12::getRenderType()
 	return g_renderType;
 }
 
-#if defined _M_X64
+
+
 uint64_t* dx12::getMethodsTable()
 {
 	return g_methodsTable;
 }
-#elif defined _M_IX86
-uint32_t* dx12::getMethodsTable()
-{
-	return g_methodsTable;
-}
-#endif
+
 
