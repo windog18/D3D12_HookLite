@@ -35,7 +35,7 @@ TempCluster * TempCluster::GetInstance()
 
 TempCluster::TempCluster()
 {
-	m_isRecording = true;
+	m_RecordState = 0;
 }
 
 
@@ -64,12 +64,8 @@ void TempCluster::WriteAllBufferToResult()
 	for (std::map<DWORD, MemStream *>::iterator it = m_sRecordMemStreamMap.begin(); it != m_sRecordMemStreamMap.end(); it++)
 	{
 		wstringstream wss;
-		if (GetCurrentThreadId() == it->first) {
-			wss << "LastFrame_RecordData_";
-		}
-		else {
-			wss << "RecordData_";
-		}
+
+		wss << "RecordData_";
 		wss << it->first;
 
 		if (GetCurrentThreadId() == it->first)

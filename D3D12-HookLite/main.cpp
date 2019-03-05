@@ -55,6 +55,19 @@ long __stdcall hkPresent12(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT F
 
 	}
 
+	RecordSpecialStart
+	auto streaminstance = GetStreamFromThreadID();
+	streaminstance->write(SWAPCHAIN_PRESENT);
+	//streaminstance->write(pSwapChain);
+	//streaminstance->
+	RecordSpecialEnd
+
+	if (TempCluster::GetInstance()->IsRecordingEnd()) {
+		TempCluster::GetInstance()->SetFrameTagForAll(CommandEnum::end_File);
+		TempCluster::GetInstance()->WriteAllBufferToResult();
+		TempCluster::GetInstance()->ResetRecordState();
+	}
+
 	auto res = oPresent12(pSwapChain, SyncInterval, Flags);
 	return res;
 
@@ -135,12 +148,7 @@ LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARA
 		}
 	}
 	if (msg == 77) { //F1
-		if (TempCluster::GetInstance()->IsRecording()) {
-			TempCluster::GetInstance()->SetRecording(false);
-			TempCluster::GetInstance()->SetFrameTagForAll(CommandEnum::end_File);
-			TempCluster::GetInstance()->WriteAllBufferToResult();
-			TempCluster::GetInstance()->ResetRecordState();
-		}
+		TempCluster::GetInstance()->ToggleRecordingState();
 	}
 
 	//// if(msg == 264){ alt + ?
@@ -238,19 +246,17 @@ int dx12Thread()
 		} while (createResult != MH_OK);
 
 
-		try {
-			MH_STATUS enableStat = MH_EnableHook((LPVOID)dx12::getMethodsTable()[140]);
-			if (enableStat == MH_OK) {
-				OutputDebugStringA("enable hook success!");
-			}
-		}
-		catch (...) {
+	
+		MH_STATUS enableStat = MH_EnableHook((LPVOID)dx12::getMethodsTable()[140]);
+		if (enableStat == MH_OK) {
+			OutputDebugStringA("enable hook success!");
+		}else{
 			OutputDebugStringA("hook failed");
 		}
 
 		CreateHookD3D12ResourceInterface(dx12::getMethodsTable());
-		CreateHookD3D12DeviceInterface(dx12::getMethodsTable());
-		CreateHookD3D12CommandListInterface(dx12::getMethodsTable());
+		//CreateHookD3D12DeviceInterface(dx12::getMethodsTable());
+		//CreateHookD3D12CommandListInterface(dx12::getMethodsTable());
 
 	}
 

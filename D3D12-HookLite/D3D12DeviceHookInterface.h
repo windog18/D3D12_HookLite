@@ -338,11 +338,11 @@ const D3D12_CLEAR_VALUE *pOptimizedClearValue,
 REFIID riidResource,
 void **ppvResource) //27
 {
-	stringstream ss;
-	ss << __FUNCTION__;
-	ss << " ";
-	ss << dDevice;
-	LOG_ONCE(ss.str());
+//	stringstream ss;
+//	ss << __FUNCTION__;
+// 	ss << " ";
+// 	ss << dDevice;
+	LOG_ONCE(__FUNCTION__);
 	//GlobalGathering::GetInstance()->GatherDevice(dDevice);
 	//Log("[d3d12] create D3D12CreateCommittedResource");
 	ID3D12Resource* pres;

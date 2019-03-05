@@ -1,4 +1,5 @@
 #pragma once
+#include "Common.h"
 #include "memstream.h"
 #include <map>
 
@@ -45,29 +46,89 @@ public:
 	TempCluster();
 	~TempCluster();
 
-	inline bool IsRecording() {
+	inline bool IsRecordingData() {
 		bool recordState = false;
 		{
 			std::lock_guard<std::mutex> lock(m_recordMutex);
-			recordState = m_isRecording;
+			recordState = (m_RecordState <= 1);
 		}
 		return recordState;
 	}
 
-	inline void SetRecording(bool recordState) {
+	inline bool IsRecordingPresent() {
+		bool recordState = false;
+		{
+			std::lock_guard<std::mutex> lock(m_recordMutex);
+			recordState = (m_RecordState == 1);
+		}
+		return recordState;
+	}
+
+	inline bool IsRecordingEnd() {
+		bool recordState = false;
+		{
+			std::lock_guard<std::mutex> lock(m_recordMutex);
+			recordState = (m_RecordState == 2);
+		}
+		return recordState;
+	}
+
+	inline void SetRecordingState(int recordState) {
 	{
 			std::lock_guard<std::mutex> lock(m_recordMutex);
-			if (m_isRecording != recordState) {
+			if (m_RecordState != recordState) {
 				std::stringstream ss;
 				ss << "recording state changed: ";
-				ss << recordState;
-				OutputDebugStringA(ss.str().c_str());
-				//OutputDebugStringA("start recording");
+				switch (recordState)
+				{
+				case 0:
+					ss << " (record all data)";
+					break;
+				case 1:
+					ss << " (record present data)";
+					break;
+				case 2:
+					ss << " (stop to write files)";
+				default:
+					ss << " (unknown state): ";
+					ss << recordState;
+					break;
+				}
+
+				Log(ss.str().c_str());
 			}
-			m_isRecording = recordState;
+			m_RecordState = recordState;
 
 		}
 	}
+
+	inline void ToggleRecordingState() {
+		std::lock_guard<std::mutex> lock(m_recordMutex);
+		m_RecordState = (m_RecordState + 1) % 3;
+
+		std::stringstream ss;
+		ss << "recording state changed: ";
+		switch (m_RecordState)
+		{
+		case 0:
+			ss << " (record all data)";
+			break;
+		case 1:
+			ss << " (record present data)";
+			break;
+		case 2:
+			ss << " (stop to write files)";
+			break;
+		case 3:
+
+		default:
+			ss << " (unknown state): ";
+			ss << m_RecordState;
+			break;
+		}
+		Log(ss.str().c_str());
+	}
+
 	void SetFrameTagForAll(CommandEnum Tag);
 	void WriteAllBufferToResult();
 
@@ -80,16 +141,25 @@ private:
 	std::mutex m_sMutex;
 	std::map<DWORD, MemStream *> m_sRecordMemStreamMap;
 
-	bool m_isRecording;
+	int m_RecordState;
 	std::mutex m_recordMutex;
 };
 
 #define RecordStart \
-	if( TempCluster::GetInstance()->IsRecording() ) \
+	if( TempCluster::GetInstance()->IsRecordingData() ) \
 	 {\
 
 #define RecordEnd \
 	}
+
+#define RecordSpecialStart \
+if( TempCluster::GetInstance()->IsRecordingPresent() ) \
+	{
+
+
+#define RecordSpecialEnd \
+}
+
 
 #define GetStreamFromThreadID() \
 TempCluster::GetInstance()->GetOrCreateMemStream(GetCurrentThreadId()); 

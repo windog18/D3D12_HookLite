@@ -159,6 +159,8 @@ enum CommandEnum
 	Resource_GetGPUVirtualAddress,
 	DesHeap_GetCPUDescriptorHandleForHeapStart,
 	DesHeap_GetGPUDescriptorHandleForHeapStart,
+
+	SWAPCHAIN_PRESENT,
 		last_frame,
 		end_frame,
 		end_File,
@@ -392,6 +394,14 @@ inline const char *enum_to_string(CommandEnum t) {
 		return "Resource_Unmap";
 	case Resource_GetGPUVirtualAddress:
 		return "Resource_GetGPUVirtualAddress";
+	case DesHeap_GetCPUDescriptorHandleForHeapStart:
+		return "DesHeap_GetCPUDescriptorHandleForHeapStart";
+	case DesHeap_GetGPUDescriptorHandleForHeapStart:
+		return "DesHeap_GetGPUDescriptorHandleForHeapStart";
+	
+	case SWAPCHAIN_PRESENT:
+		return "SWAPCHAIN_PRESENT";
+
 	case end_frame:
 		return "end_frame";
 	case end_File:

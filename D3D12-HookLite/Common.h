@@ -17,6 +17,7 @@ namespace fs = std::experimental::filesystem;
 #include <sstream> 
 #include <string>
 #include <vector>
+#include <fstream>
 
 
 #define DECLARE_FUNCTIONPTR(DReturnType,DFunctionName,...) \
@@ -34,5 +35,35 @@ DReturnType __stdcall hk##DFunctionName(__VA_ARGS__) \
 	}while(result != MH_OK); \
 }
 
+inline void Log(const char *fmt, ...)
+{
+	if (!fmt)	return;
 
+	char		text[4096];
+	va_list		ap;
+	va_start(ap, fmt);
+	vsprintf_s(text, fmt, ap);
+	va_end(ap);
+
+
+	std::string outputStrs = "[2020] ";
+	outputStrs = outputStrs + std::string(text);
+	//printf(text);
+	OutputDebugStringA(outputStrs.c_str());
+// 	std::ofstream logfile(DumpPath, std::ios::app);
+// 	if (logfile.is_open() && text)	logfile << text << std::endl;
+// 	logfile.close();
+}
+
+
+#if 1
+#define  LOG_ONCE(...) \
+	
+#else
 #define LOG_ONCE(...)\
+{\
+	Log(__VA_ARGS__);\
+}
+#endif
+
+

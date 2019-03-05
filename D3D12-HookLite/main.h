@@ -10,30 +10,6 @@
 using namespace std;
 
 char dlldir[320];
-char *GetDirectoryFile(char *filename)
-{
-	static char path[320];
-	strcpy_s(path, dlldir);
-	strcat_s(path, filename);
-	return path;
-}
-
-void Log(const char *fmt, ...)
-{
-	if (!fmt)	return;
-
-	char		text[4096];
-	va_list		ap;
-	va_start(ap, fmt);
-	vsprintf_s(text, fmt, ap);
-	va_end(ap);
-
-
-	OutputDebugStringA(text);
-// 	ofstream logfile(GetDirectoryFile((PCHAR)"log.txt"), ios::app);
-// 	if (logfile.is_open() && text)	logfile << text << endl;
-// 	logfile.close();
-}
 
 //=========================================================================================================================//
 
@@ -248,13 +224,14 @@ dx12::Status::Enum dx12::init(RenderType::Enum _renderType)
 					return Status::UnknownError;
 				}
 
-				g_methodsTable = (uint64_t*)::calloc(150, sizeof(uint64_t));
+				g_methodsTable = (uint64_t*)::calloc(44 + 19 + 9 + 60 + 18 + 15 + 3, sizeof(uint64_t));
 				memcpy(g_methodsTable, *(uint64_t**)device, 44 * sizeof(uint64_t));
 				memcpy(g_methodsTable + 44, *(uint64_t**)commandQueue, 19 * sizeof(uint64_t));
 				memcpy(g_methodsTable + 44 + 19, *(uint64_t**)commandAllocator, 9 * sizeof(uint64_t));
 				memcpy(g_methodsTable + 44 + 19 + 9, *(uint64_t**)commandList, 60 * sizeof(uint64_t));
 				memcpy(g_methodsTable + 44 + 19 + 9 + 60, *(uint64_t**)swapChain, 18 * sizeof(uint64_t));
-
+				memcpy(g_methodsTable + 44 + 19 + 9 + 60 + 18, *(uint64_t**)d3dResources, 15 * sizeof(uint64_t));
+				memcpy(g_methodsTable + 44 + 19 + 9 + 60 + 18 + 15, *(uint64_t**)rtvHeap, 3 * sizeof(uint64_t));
 
 				device->Release();
 				device = NULL;
