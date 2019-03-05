@@ -130,10 +130,7 @@ DECLARE_FUNCTIONPTR(D3D12_GPU_VIRTUAL_ADDRESS,D3D12GetGPUVirtualAddress, ID3D12R
 	streaminstance->write(dResource);
 	streaminstance->write(res);
 	RecordEnd
-/*
-#if DECLARE_STATIC
-	ResourceTempData<UINT64, ID3D12Resource *>::SetTempMapData(res, dResource);
-#endif*/
+
 	return res;
 }
 
@@ -165,19 +162,29 @@ DECLARE_FUNCTIONPTR(D3D12_CPU_DESCRIPTOR_HANDLE, D3D12GetCPUDescriptorHandleForH
 { 
 	LOG_ONCE(__FUNCTION__);
 
-	auto res = oD3D12GetCPUDescriptorHandleForHeapStart(desHeap);
+	D3D12_CPU_DESCRIPTOR_HANDLE res = oD3D12GetCPUDescriptorHandleForHeapStart(desHeap);
 
+	RecordStart
+	MemStream* streaminstance = GetStreamFromThreadID();
+	streaminstance->write(DesHeap_GetCPUDescriptorHandleForHeapStart);
+	streaminstance->write(desHeap);
+	streaminstance->write(res);
+	RecordEnd
 
-	ResourceTempData<UINT64, ID3D12DescriptorHeap *, 0>::SetTempMapData(res.ptr, desHeap);
 	return res;
 }
 
 DECLARE_FUNCTIONPTR(D3D12_GPU_DESCRIPTOR_HANDLE, D3D12GetGPUDescriptorHandleForHeapStart, ID3D12DescriptorHeap *desHeap) //17
 {
 	LOG_ONCE(__FUNCTION__);
-	auto res = oD3D12GetGPUDescriptorHandleForHeapStart(desHeap);
-
-	ResourceTempData<UINT64, ID3D12DescriptorHeap *, 1>::SetTempMapData(res.ptr, desHeap);
+	D3D12_GPU_DESCRIPTOR_HANDLE res = oD3D12GetGPUDescriptorHandleForHeapStart(desHeap);
+	
+	RecordStart
+	MemStream* streaminstance = GetStreamFromThreadID();
+	streaminstance->write(DesHeap_GetGPUDescriptorHandleForHeapStart);
+	streaminstance->write(desHeap);
+	streaminstance->write(res);
+	RecordEnd
 	return res;
 }
 

@@ -157,6 +157,8 @@ enum CommandEnum
 	Resource_Map,
 	Resource_Unmap,
 	Resource_GetGPUVirtualAddress,
+	DesHeap_GetCPUDescriptorHandleForHeapStart,
+	DesHeap_GetGPUDescriptorHandleForHeapStart,
 		last_frame,
 		end_frame,
 		end_File,

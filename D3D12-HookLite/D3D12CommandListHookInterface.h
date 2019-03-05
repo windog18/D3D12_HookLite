@@ -486,7 +486,7 @@ DECLARE_FUNCTIONPTR(void, D3D12SetComputeRootSignature, ID3D12GraphicsCommandLis
 DECLARE_FUNCTIONPTR(void, D3D12SetGraphicsRootSignature, ID3D12GraphicsCommandList *dCommandList, ID3D12RootSignature *pRootSignature) //72 + 30
 {
 	LOG_ONCE(__FUNCTION__);
-	//Log("[d3d12] D3D12SetGraphicsRootSignature");
+	
 
     oD3D12SetGraphicsRootSignature(dCommandList, pRootSignature);
 
@@ -509,11 +509,8 @@ DECLARE_FUNCTIONPTR(void, D3D12SetComputeRootDescriptorTable, ID3D12GraphicsComm
 	streamInstance->write(CommandEnum::CommandList_SetComputeRootDescriptorTable);
 	streamInstance->write(dCommandList);
 	streamInstance->write(RootParameterIndex);
+	streamInstance->write(BaseDescriptor);
 
-#if DECLARE_STATIC
-	ID3D12DescriptorHeap* heap = ResourceTempData<UINT64, ID3D12DescriptorHeap*, 1>::GetTempMapData(BaseDescriptor.ptr);
-	streamInstance->write(heap);
-#endif
 	RecordEnd
 
 	return;
@@ -528,11 +525,9 @@ DECLARE_FUNCTIONPTR(void, D3D12SetGraphicsRootDescriptorTable, ID3D12GraphicsCom
 	streamInstance->write(CommandList_SetGraphicsRootDescriptorTable);
 	streamInstance->write(dCommandList);
 	streamInstance->write(RootParameterIndex);
+	streamInstance->write(BaseDescriptor);
 
-#if DECLARE_STATIC
-	ID3D12DescriptorHeap* heap = ResourceTempData<UINT64, ID3D12DescriptorHeap*,1>::GetTempMapData(BaseDescriptor.ptr);
-	streamInstance->write(heap);
-#endif
+
 	RecordEnd
 
 }
@@ -695,17 +690,7 @@ DECLARE_FUNCTIONPTR(void, D3D12IASetIndexBuffer, ID3D12GraphicsCommandList *dCom
 	streaminstance->write(CommandList_IASetIndexBuffer);
 	streaminstance->write(dCommandList);
  	streaminstance->writePointerValue(pViews);
-	if (pViews == NULL) {
 	
-		void *pp = nullptr;
-		streaminstance->write(pp);
-	}
-	else {
-
-		UINT64 gpuadr = pViews->BufferLocation;
-		ID3D12Resource* pRes = ResourceTempData<UINT64, ID3D12Resource *>::GetTempMapData(gpuadr);  //XD3D12Resource::m_hackmap[gpuadr];
-		streaminstance->write(pRes);
-	}
 
 	RecordEnd
 }
@@ -723,17 +708,6 @@ DECLARE_FUNCTIONPTR(void, D3D12IASetVertexBuffers, ID3D12GraphicsCommandList *dC
 	streaminstance->write(NumViews);
 	streaminstance->writePointerValue(pViews);
 
-	if (pViews == NULL) {
-		//Log_Detail_1(Enum_other1, "error pViews Found null");
-		void *pp = nullptr;
-		streaminstance->write(pp);
-	}
-	else {
-
-		UINT64 gpuadr = pViews->BufferLocation;
-		ID3D12Resource* pRes = ResourceTempData<UINT64, ID3D12Resource *>::GetTempMapData(gpuadr);  //XD3D12Resource::m_hackmap[gpuadr];
-		streaminstance->write(pRes);
-	}
 	RecordEnd
 }
 
