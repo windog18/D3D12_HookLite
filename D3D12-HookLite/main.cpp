@@ -4,11 +4,7 @@
 
 #include "main.h"
 #include <sstream>
-//#include "memstream.h"
-//bool g_beginRecord = true;
-//std::mutex g_mutex;
-//=========================================================================================================================// D3D12 HOOKS 
-// D3D12 HOOKS Example
+
 
 #define DECLARE_FUNCTIONPTR(DReturnType,DFunctionName,...) \
 typedef DReturnType(__stdcall* DFunctionName)(__VA_ARGS__);\
@@ -22,13 +18,6 @@ MH_CreateHook(methodVirtualPtr, hk##DFunctionName, (LPVOID*)&o##DFunctionName)
 
 
 void HookWindowProc(HWND hWnd);
-bool InitOnce = true;
-bool InitOnce2 = true;
-bool InitOnce3 = true;
-ID3D12Device *dDevice = NULL;
-ID3D12GraphicsCommandList *dCommandList = NULL;
-
-
 typedef long(__stdcall* Present12) (IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Flags);
 Present12 oPresent12 = NULL;
 
@@ -79,7 +68,6 @@ DECLARE_FUNCTIONPTR(HRESULT, D3D12CreateGraphicsPipelineState, ID3D12Device *dDe
  	MemStream* streaminstance = GetStreamFromThreadID();
  	streaminstance->write(Device_CreateGraphicsPipelineState);
 	streaminstance->write(dDevice);
-	streaminstance->writePointerValue(pDesc);
  	streaminstance->write(*pDesc);
  	streaminstance->write(riid);
  	streaminstance->write(*ppPipelineState);
@@ -91,12 +79,14 @@ DECLARE_FUNCTIONPTR(HRESULT, D3D12CreateGraphicsPipelineState, ID3D12Device *dDe
 
 long __stdcall hkPresent12(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Flags)
 {
+
+	static bool InitOnce = true;
 	//Log_WithThreadID("[d3d12]present be called");
 	if (InitOnce)
 	{
 
 		
-
+		ID3D12Device *dDevice = NULL;
 		//get device
 		if (SUCCEEDED(pSwapChain->GetDevice(__uuidof(ID3D12Device), (void **)&dDevice)))
 		{
