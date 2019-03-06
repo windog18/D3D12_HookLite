@@ -393,11 +393,11 @@ D3D12_RESOURCE_STATES InitialState, const D3D12_CLEAR_VALUE *pOptimizedClearValu
 	streaminstance->write(dDevice);
 	streaminstance->write(pHeap);
 	streaminstance->write(HeapOffset);
-	streaminstance->writePointerValue(pDesc);
+	streaminstance->write(*pDesc);
 	streaminstance->write(InitialState);
 	streaminstance->writePointerValue(pOptimizedClearValue);
 	streaminstance->write(riid);
-	streaminstance->write((ID3D12Resource *)(*ppvResource));
+	streaminstance->write(*ppvResource);
 	RecordEnd
 	return res;
 }
@@ -410,11 +410,12 @@ const D3D12_CLEAR_VALUE *pOptimizedClearValue, REFIID riid, void **ppvResource) 
 	RecordStart
 	MemStream* streaminstance = GetStreamFromThreadID();
 	streaminstance->write(Device_CreateReservedResource);
-	streaminstance->writePointerValue(dDevice);
+	streaminstance->write(dDevice);
+	streaminstance->write(*pDesc);
 	streaminstance->write(InitialState);
 	streaminstance->writePointerValue(pOptimizedClearValue);
 	streaminstance->write(riid);
-	streaminstance->write((ID3D12Resource *)(*ppvResource));
+	streaminstance->write(*ppvResource);
 	RecordEnd
 	return res;
 }
