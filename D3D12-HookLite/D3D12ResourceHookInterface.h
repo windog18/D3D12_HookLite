@@ -137,6 +137,7 @@ DECLARE_FUNCTIONPTR(D3D12_GPU_VIRTUAL_ADDRESS,D3D12GetGPUVirtualAddress, ID3D12R
 DECLARE_FUNCTIONPTR(long, D3D12WriteToSubresource, ID3D12Resource *dResource, UINT DstSubresource, const D3D12_BOX *pDstBox, const void *pSrcData, UINT SrcRowPitch, UINT SrcDepthPitch)  //12
 {
 	LOG_ONCE(__FUNCTION__);
+
 	return oD3D12WriteToSubresource(dResource, DstSubresource, pDstBox, pSrcData, SrcRowPitch, SrcDepthPitch);
 }
 
@@ -223,4 +224,18 @@ void CreateHookD3D12ResourceInterface(uint64_t* methodVirtualTable)
 
 	MH_EnableHook((LPVOID)methodVirtualTable[150 + 16]);
 	MH_EnableHook((LPVOID)methodVirtualTable[150 + 17]);
+}
+
+
+void CreateHookD3D12ResourceInterfaceForTexture(uint64_t* methodVirtualTable)
+{
+	CREATE_HOOKPAIR((LPVOID)methodVirtualTable[150 + 8], D3D12ResourceMap);
+	CREATE_HOOKPAIR((LPVOID)methodVirtualTable[150 + 9], D3D12ResourceUnmap);
+	CREATE_HOOKPAIR((LPVOID)methodVirtualTable[150 + 12], D3D12WriteToSubresource);
+	CREATE_HOOKPAIR((LPVOID)methodVirtualTable[150 + 13], D3D12ReadFromSubresource);
+
+	MH_EnableHook((LPVOID)methodVirtualTable[150 + 8]);
+	MH_EnableHook((LPVOID)methodVirtualTable[150 + 9]);
+	MH_EnableHook((LPVOID)methodVirtualTable[150 + 12]);
+	MH_EnableHook((LPVOID)methodVirtualTable[150 + 13]);
 }

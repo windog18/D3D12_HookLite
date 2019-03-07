@@ -1090,3 +1090,16 @@ void CreateHookD3D12CommandListInterface(uint64_t* methodVirtualTable)
 // // 
 //  	MH_EnableHook((LPVOID)methodVirtualTable[72 + 59]);
 }
+
+void CreateHookD3D12CommandListInterfaceForTexture(uint64_t* methodVirtualTable)
+{
+	CREATE_HOOKPAIR((LPVOID)methodVirtualTable[72 + 15], D3D12CopyBufferRegion);
+	CREATE_HOOKPAIR((LPVOID)methodVirtualTable[72 + 16], D3D12CopyTextureRegion);
+	CREATE_HOOKPAIR((LPVOID)methodVirtualTable[72 + 17], D3D12CopyResource);
+	CREATE_HOOKPAIR((LPVOID)methodVirtualTable[72 + 18], D3D12CopyTiles);
+
+	MH_EnableHook((LPVOID)methodVirtualTable[72 + 15]);
+	MH_EnableHook((LPVOID)methodVirtualTable[72 + 16]);
+	MH_EnableHook((LPVOID)methodVirtualTable[72 + 17]);
+	MH_EnableHook((LPVOID)methodVirtualTable[72 + 18]);
+}

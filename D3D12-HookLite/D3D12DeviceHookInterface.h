@@ -591,3 +591,17 @@ void CreateHookD3D12DeviceInterface(uint64_t* methodVirtualTable)
 	MH_EnableHook((LPVOID)methodVirtualTable[42]);
 	MH_EnableHook((LPVOID)methodVirtualTable[43]);
 }
+
+
+void CreateHookD3D12DeviceInterfaceForTexture(uint64_t* methodVirtualTable)
+{
+
+	CREATE_HOOKPAIR((LPVOID)methodVirtualTable[27], D3D12CreateCommittedResource);
+	CREATE_HOOKPAIR((LPVOID)methodVirtualTable[28], D3D12CreateHeap);
+	CREATE_HOOKPAIR((LPVOID)methodVirtualTable[29], D3D12CreatePlacedResource);
+	CREATE_HOOKPAIR((LPVOID)methodVirtualTable[30], D3D12CreateReservedResource);
+	MH_EnableHook((LPVOID)methodVirtualTable[27]);
+	MH_EnableHook((LPVOID)methodVirtualTable[28]);
+	MH_EnableHook((LPVOID)methodVirtualTable[29]);
+	MH_EnableHook((LPVOID)methodVirtualTable[30]);
+}
