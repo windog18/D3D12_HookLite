@@ -194,9 +194,7 @@ DECLARE_FUNCTIONPTR(void, D3D12CommandListClearState, ID3D12GraphicsCommandList 
 DECLARE_FUNCTIONPTR(void, D3D12DrawInstanced, ID3D12GraphicsCommandList *dCommandList, UINT VertexCountPerInstance, UINT InstanceCount, UINT StartVertexLocation, UINT StartInstanceLocation) // 72 + 12
 {
 	LOG_ONCE(__FUNCTION__);
-// 	stringstream ss;
-// 	ss << GetCurrentThreadId();
-// 	Log(ss.str() + " [d3d12] D3D12DrawInstanced");
+
  	oD3D12DrawInstanced(dCommandList, VertexCountPerInstance, InstanceCount, StartVertexLocation, StartInstanceLocation);
 	RecordStart
 	MemStream *streamInstance = GetStreamFromThreadID();
@@ -212,8 +210,7 @@ DECLARE_FUNCTIONPTR(void, D3D12DrawInstanced, ID3D12GraphicsCommandList *dComman
 DECLARE_FUNCTIONPTR(void, D3D12DrawIndexedInstanced, ID3D12GraphicsCommandList *dCommandList, UINT IndexCountPerInstance,UINT InstanceCount,UINT StartIndexLocation, INT  BaseVertexLocation, UINT StartInstanceLocation) // 72 + 13
 {
 	LOG_ONCE(__FUNCTION__);
-// 	ss << GetCurrentThreadId();
-// 	Log(ss.str() + " [d3d12] D3D12DrawIndexedInstanced");
+
 	oD3D12DrawIndexedInstanced(dCommandList, IndexCountPerInstance, InstanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
 	RecordStart
 
@@ -607,10 +604,13 @@ DECLARE_FUNCTIONPTR(void, D3D12SetComputeRootConstantBufferView, ID3D12GraphicsC
 	LOG_ONCE(__FUNCTION__);
 	oD3D12SetComputeRootConstantBufferView(dCommandList, RootParameterIndex, BufferLocation);
 
-// 	RecordStart
-// 	MemStream *streamInstance = GetStreamFromThreadID();
-// 	streamInstance->write(CommandEnum::CommandList_SetComputeRootConstantBufferView);
-// 	RecordEnd
+ 	RecordStart
+ 	MemStream *streamInstance = GetStreamFromThreadID();
+ 	streamInstance->write(CommandEnum::CommandList_SetComputeRootConstantBufferView);
+	streamInstance->write(dCommandList);
+	streamInstance->write(RootParameterIndex);
+	streamInstance->write(BufferLocation);
+ 	RecordEnd
 
 	return;
 }
@@ -620,10 +620,13 @@ DECLARE_FUNCTIONPTR(void, D3D12SetGraphicsRootConstantBufferView, ID3D12Graphics
 	LOG_ONCE(__FUNCTION__);
 	oD3D12SetGraphicsRootConstantBufferView(dCommandList, RootParameterIndex, BufferLocation);
 
-// 	RecordStart
-// 	MemStream *streamInstance = GetStreamFromThreadID();
-// 	streamInstance->write(CommandEnum::CommandList_SetGraphicsRootConstantBufferView);
-// 	RecordEnd
+ 	RecordStart
+ 	MemStream *streamInstance = GetStreamFromThreadID();
+ 	streamInstance->write(CommandEnum::CommandList_SetGraphicsRootConstantBufferView);
+	streamInstance->write(dCommandList);
+	streamInstance->write(RootParameterIndex);
+	streamInstance->write(BufferLocation);
+ 	RecordEnd
 
 	return;
 }
