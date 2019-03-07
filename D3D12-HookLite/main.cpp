@@ -4,8 +4,6 @@
 
 #include "main.h"
 
-#include "D3D12DeviceHookInterface.h"
-#include "D3D12ResourceHookInterface.h"
 #include "D3D12CommandListHookInterface.h"
 #include "D3D12CommandQueueHookInterface.h"
 
@@ -258,10 +256,11 @@ int dx12Thread()
 // 		CreateHookD3D12DeviceInterface(dx12::getMethodsTable());
 // 		CreateHookD3D12CommandListInterface(dx12::getMethodsTable());
 
-
-		CreateHookD3D12CommandListInterfaceForTexture(dx12::getMethodsTable());
-		CreateHookD3D12ResourceInterfaceForTexture(dx12::getMethodsTable());
 		CreateHookD3D12DeviceInterfaceForTexture(dx12::getMethodsTable());
+		CreateHookD3D12ResourceInterfaceForTexture(dx12::getMethodsTable());
+		CreateHookD3D12CommandListInterfaceForTexture(dx12::getMethodsTable());
+
+
 	}
 
 	return 0;

@@ -3,7 +3,7 @@
 //#include "GlobalGathering.h"
 
 
-const int MaxDatasize = 20 * 1024 * 1024;
+const int MaxDatasize = 1 * 1024 * 1024;
 
 const int MaxCallSequenceSize = 1024 * 1024 * 1024;
 

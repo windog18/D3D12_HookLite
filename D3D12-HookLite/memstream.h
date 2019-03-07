@@ -98,9 +98,10 @@ public:
 		if (tSize + streamcount >= memhandle.size()) {
 			size_t increSize = memhandle.size() * 2;
 			if (tSize > memhandle.size()) {
-				increSize = (size_t)(1.5 * tSize);
+				increSize = (size_t)(1.2 * tSize);
 			}
 			if (increSize > 1024 * 1024 * 1024) {
+				//Log("incre large memory: %.2f", (1.5 * tSize) / (1024 * 1024 * 1024));
 // 				Log_Detail_1(Enum_other1, "writeBuffer: %d, bufferSize: %d", streamcount + tSize, memhandle.size());
 // 				Log_Detail_1(Enum_other1, "incre large memory: %.2f", (1.5 * tSize) / (1024 * 1024 * 1024));
 			}

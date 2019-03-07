@@ -1,5 +1,7 @@
 #pragma once
 #include "Common.h"
+#include "D3D12DeviceHookInterface.h"
+#include "D3D12ResourceHookInterface.h"
 #include "TempCluster.h"
 ////base bias  44 + 19 + 9 = 72
 ////total function: 60
@@ -266,6 +268,8 @@ DECLARE_FUNCTIONPTR(void, D3D12CopyTextureRegion, ID3D12GraphicsCommandList *dCo
 	RecordStart
 	MemStream *streamInstance = GetStreamFromThreadID();
 	streamInstance->write(CommandEnum::CommandList_CopyTextureRegion);
+
+
 	streamInstance->write(dCommandList);
 	streamInstance->writePointerValue(pDst);
 	streamInstance->write(DstX);
@@ -273,6 +277,29 @@ DECLARE_FUNCTIONPTR(void, D3D12CopyTextureRegion, ID3D12GraphicsCommandList *dCo
 	streamInstance->write(DstZ);
 	streamInstance->writePointerValue(pSrc);
 	streamInstance->writePointerValue(pSrcBox);
+
+	D3D12_RESOURCE_DESC desc = pSrc->pResource->GetDesc();
+	if (desc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER) {
+		BYTE* pData;
+		auto checkResult = oD3D12ResourceMap(pSrc->pResource, pSrc->SubresourceIndex, nullptr, reinterpret_cast<void**>(&pData));
+		if (checkResult == S_OK) {
+			size_t dataSize = pSrc->PlacedFootprint.Footprint.RowPitch * pSrc->PlacedFootprint.Footprint.Height * pSrc->PlacedFootprint.Footprint.Depth;
+			//Log("map resource address: %p, datasize: %d,%d", (void *)pData, dataSize, desc.Width);
+			oD3D12ResourceUnmap(pSrc->pResource, pSrc->SubresourceIndex, nullptr);
+			streamInstance->write(dataSize);
+			//if (dataSize < 8 * 1024 * 1024) {
+			streamInstance->write(pData, dataSize);
+			//}
+		}
+		else {
+			size_t dataSize = 0;
+			streamInstance->write(dataSize);
+		}
+	}
+	//streamInstance->write(dataSize);
+ 	//streamInstance->write(pData, dataSize);
+
+
 	//streamInstance->write()
 	RecordEnd
 }
