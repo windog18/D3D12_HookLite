@@ -14,16 +14,6 @@ IMPLEMENT_RESOURCE_DATA(UINT64, ID3D12Resource*, 0)
 
 TempCluster * TempCluster::m_sSingleton = nullptr;
 
-inline std::string narrow(std::wstring const& text)
-{
-	std::locale const loc("");
-	wchar_t const* from = text.c_str();
-	std::size_t const len = text.size();
-	std::vector<char> buffer(len + 1);
-	std::use_facet<std::ctype<wchar_t> >(loc).narrow(from, from + len, '_', &buffer[0]);
-	return std::string(&buffer[0], &buffer[len]);
-}
-
 
 TempCluster * TempCluster::GetInstance()
 {
@@ -103,6 +93,18 @@ MemStream * TempCluster::GetOrCreateMemStream(DWORD threadID)
 
 	}
 	return m_sRecordMemStreamMap[threadID];
+}
+
+MemStream * TempCluster::GetOrCreateTempStream(DWORD threadID)
+{
+	std::lock_guard<std::mutex> guard(m_sMutex);
+	if (m_sTempWriteMemStreamMap.find(threadID) == m_sTempWriteMemStreamMap.end()) {
+		MemStream *memStream = new MemStream();
+		memStream->init();
+		m_sTempWriteMemStreamMap.insert(std::make_pair(threadID, memStream));
+	}
+	m_sTempWriteMemStreamMap[threadID]->reset();
+	return m_sTempWriteMemStreamMap[threadID];
 }
 
 

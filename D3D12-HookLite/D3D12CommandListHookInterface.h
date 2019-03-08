@@ -263,8 +263,6 @@ DECLARE_FUNCTIONPTR(void, D3D12CopyBufferRegion, ID3D12GraphicsCommandList *dCom
 DECLARE_FUNCTIONPTR(void, D3D12CopyTextureRegion, ID3D12GraphicsCommandList *dCommandList, const D3D12_TEXTURE_COPY_LOCATION *pDst, UINT DstX, UINT DstY, UINT DstZ, const D3D12_TEXTURE_COPY_LOCATION *pSrc, const D3D12_BOX *pSrcBox) // 72 + 16
 {
 	LOG_ONCE(__FUNCTION__);
-	oD3D12CopyTextureRegion(dCommandList, pDst, DstX, DstY, DstZ, pSrc, pSrcBox);
-
 	RecordStart
 	MemStream *streamInstance = GetStreamFromThreadID();
 	streamInstance->write(CommandEnum::CommandList_CopyTextureRegion);
@@ -278,30 +276,62 @@ DECLARE_FUNCTIONPTR(void, D3D12CopyTextureRegion, ID3D12GraphicsCommandList *dCo
 	streamInstance->writePointerValue(pSrc);
 	streamInstance->writePointerValue(pSrcBox);
 
+#ifdef CAPTURE_TEXTURE_ONLY
 	D3D12_RESOURCE_DESC desc = pSrc->pResource->GetDesc();
-	if (desc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER) {
+	if (desc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER && DstX == 0 && DstY == 0 && DstZ == 0 && pSrcBox == NULL)
+	{
+		MemStream *tempStreamInstance = TempCluster::GetInstance()->GetOrCreateTempStream(GetCurrentThreadId());
 		BYTE* pData;
-		auto checkResult = oD3D12ResourceMap(pSrc->pResource, pSrc->SubresourceIndex, nullptr, reinterpret_cast<void**>(&pData));
+		auto checkResult = oD3D12ResourceMap(pSrc->pResource, 0, nullptr, reinterpret_cast<void**>(&pData));
 		if (checkResult == S_OK) {
-			size_t dataSize = pSrc->PlacedFootprint.Footprint.RowPitch * pSrc->PlacedFootprint.Footprint.Height * pSrc->PlacedFootprint.Footprint.Depth;
-			//Log("map resource address: %p, datasize: %d,%d", (void *)pData, dataSize, desc.Width);
-			oD3D12ResourceUnmap(pSrc->pResource, pSrc->SubresourceIndex, nullptr);
-			streamInstance->write(dataSize);
-			//if (dataSize < 8 * 1024 * 1024) {
-			streamInstance->write(pData, dataSize);
-			//}
+			BYTE *copyDataOffset = pData + pSrc->PlacedFootprint.Offset;
+			size_t dataSize = GetRequiredIntermediateSize(pDst->pResource, pDst->SubresourceIndex, 1);
+
+			//size_t dataSize = pSrc->PlacedFootprint.Footprint.RowPitch * pSrc->PlacedFootprint.Footprint.Height * pSrc->PlacedFootprint.Footprint.Depth;
+
+			if (pSrc->PlacedFootprint.Offset + dataSize > desc.Width) {
+				Log("map resource address: %p, offset %d, datasize: %d,%d begin write", (void *)pData, pSrc->PlacedFootprint.Offset, dataSize, desc.Width);
+				Log("image width %d, height %d, format: %d", pSrc->PlacedFootprint.Footprint.Width, pSrc->PlacedFootprint.Footprint.Height, pSrc->PlacedFootprint.Footprint.Format);
+				Log("map resource address: %p, offset %d, datasize: %d,%d end write", (void *)pData, pSrc->PlacedFootprint.Offset, pSrc->PlacedFootprint.Offset + dataSize, desc.Width);
+			}
+			else {
+				if (pSrc->PlacedFootprint.Footprint.Format == DXGI_FORMAT_R8G8B8A8_UNORM) {
+
+					Log("image width %d, height %d, depth %d, datasize: %d", pSrc->PlacedFootprint.Footprint.Width, pSrc->PlacedFootprint.Footprint.Height, pSrc->PlacedFootprint.Footprint.Depth, dataSize);
+				}
+				bool test = true;
+				//tempStreamInstance->write(test);
+				tempStreamInstance->writePointerValue(pSrc);
+				tempStreamInstance->write(dataSize);
+				tempStreamInstance->write(copyDataOffset, dataSize);
+				fs::path basePath = fs::path(UWP::Current::Storage::GetTemporaryPath()) / L"DUMP" / L"Textures";
+
+				wstringstream wss;
+				wss << (INT64)(pDst->pResource);
+				wss << L"_";
+				wss << pDst->SubresourceIndex;
+				wss << ".tex";
+				fs::path writePath = basePath / wss.str();
+				std::error_code ErrorCode;
+				if (fs::create_directories(writePath.parent_path(), ErrorCode) == false && ErrorCode) {
+					Log((std::string("could not create path at: ") + narrow(writePath.c_str())).c_str());
+				}
+				else
+				{
+					std::string charStrs = narrow(writePath.c_str());
+					tempStreamInstance->writetoFile(charStrs.c_str());
+				}
+			}
+
+			oD3D12ResourceUnmap(pSrc->pResource, 0, nullptr);
 		}
-		else {
-			size_t dataSize = 0;
-			streamInstance->write(dataSize);
-		}
+
 	}
-	//streamInstance->write(dataSize);
- 	//streamInstance->write(pData, dataSize);
-
-
-	//streamInstance->write()
+#endif
 	RecordEnd
+
+
+	oD3D12CopyTextureRegion(dCommandList, pDst, DstX, DstY, DstZ, pSrc, pSrcBox);
 }
 
 DECLARE_FUNCTIONPTR(void, D3D12CopyResource, ID3D12GraphicsCommandList *dCommandList, ID3D12Resource *pDstResource, ID3D12Resource *pSrcResource) // 72 + 17
@@ -1128,8 +1158,8 @@ void CreateHookD3D12CommandListInterfaceForTexture(uint64_t* methodVirtualTable)
 	CREATE_HOOKPAIR((LPVOID)methodVirtualTable[72 + 17], D3D12CopyResource);
 	CREATE_HOOKPAIR((LPVOID)methodVirtualTable[72 + 18], D3D12CopyTiles);
 
-	MH_EnableHook((LPVOID)methodVirtualTable[72 + 15]);
+	//MH_EnableHook((LPVOID)methodVirtualTable[72 + 15]);
 	MH_EnableHook((LPVOID)methodVirtualTable[72 + 16]);
-	MH_EnableHook((LPVOID)methodVirtualTable[72 + 17]);
-	MH_EnableHook((LPVOID)methodVirtualTable[72 + 18]);
+	//MH_EnableHook((LPVOID)methodVirtualTable[72 + 17]);
+	//MH_EnableHook((LPVOID)methodVirtualTable[72 + 18]);
 }

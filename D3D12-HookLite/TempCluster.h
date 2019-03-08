@@ -134,12 +134,16 @@ public:
 
 	void ResetRecordState();
 	MemStream *GetOrCreateMemStream(DWORD threadID);
+
+	MemStream *GetOrCreateTempStream(DWORD threadID);
 private:
 	static TempCluster *m_sSingleton;
 
 
 	std::mutex m_sMutex;
 	std::map<DWORD, MemStream *> m_sRecordMemStreamMap;
+
+	std::map<DWORD, MemStream *> m_sTempWriteMemStreamMap;
 
 	int m_RecordState;
 	std::mutex m_recordMutex;

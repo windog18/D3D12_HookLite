@@ -251,16 +251,16 @@ int dx12Thread()
 		}else{
 			OutputDebugStringA("hook failed");
 		}
-// 
-// 		CreateHookD3D12ResourceInterface(dx12::getMethodsTable());
-// 		CreateHookD3D12DeviceInterface(dx12::getMethodsTable());
-// 		CreateHookD3D12CommandListInterface(dx12::getMethodsTable());
 
+#ifndef CAPTURE_TEXTURE_ONLY
+		CreateHookD3D12ResourceInterface(dx12::getMethodsTable());
+ 		CreateHookD3D12DeviceInterface(dx12::getMethodsTable());
+ 		CreateHookD3D12CommandListInterface(dx12::getMethodsTable());
+#else
 		CreateHookD3D12DeviceInterfaceForTexture(dx12::getMethodsTable());
 		CreateHookD3D12ResourceInterfaceForTexture(dx12::getMethodsTable());
 		CreateHookD3D12CommandListInterfaceForTexture(dx12::getMethodsTable());
-
-
+#endif // !CAPTURE_TEXTURE_ONLY
 	}
 
 	return 0;

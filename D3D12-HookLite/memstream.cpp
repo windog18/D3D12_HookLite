@@ -3,7 +3,7 @@
 //#include "GlobalGathering.h"
 
 
-const int MaxDatasize = 1 * 1024 * 1024;
+const int MaxDatasize = 20 * 1024 * 1024;
 
 const int MaxCallSequenceSize = 1024 * 1024 * 1024;
 
@@ -57,6 +57,7 @@ void MemStream::reset()
 {
 	streamcount = 0;
 	streamhandle = &memhandle[0];
+	memset(&memhandle[0], 0, memhandle.size());
 
 	nameListCache.clear();
 }

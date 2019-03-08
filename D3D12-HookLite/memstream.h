@@ -9,6 +9,7 @@
 #include <mutex>
 #include <iostream>
 #include <fstream>
+#include "Common.h"
 
 using namespace std;
 
@@ -96,11 +97,16 @@ public:
 	inline void WriteToMemStream(const void *src, size_t tSize) {
 		std::lock_guard<std::mutex> locker(m_gMutex);
 		if (tSize + streamcount >= memhandle.size()) {
-			size_t increSize = memhandle.size() * 2;
+			size_t increSize = memhandle.size() * 1.5;
 			if (tSize > memhandle.size()) {
-				increSize = (size_t)(1.2 * tSize);
+				increSize = (size_t)(1.5 * tSize);
+			}
+
+			if (increSize > memhandle.max_size()) {
+				Log("max vector size exe!!!!!!!!!!!");
 			}
 			if (increSize > 1024 * 1024 * 1024) {
+
 				//Log("incre large memory: %.2f", (1.5 * tSize) / (1024 * 1024 * 1024));
 // 				Log_Detail_1(Enum_other1, "writeBuffer: %d, bufferSize: %d", streamcount + tSize, memhandle.size());
 // 				Log_Detail_1(Enum_other1, "incre large memory: %.2f", (1.5 * tSize) / (1024 * 1024 * 1024));
@@ -210,4 +216,7 @@ inline void MemStream::read(CommandEnum& enu)
 	streamhandle = (unsigned char*)streamhandle + sizeof(CommandEnum);
 
 }
+
+
+
 
