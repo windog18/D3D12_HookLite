@@ -75,7 +75,7 @@ DECLARE_FUNCTIONPTR(long, D3D12CreateGraphicsPipelineState, ID3D12Device *dDevic
 DECLARE_FUNCTIONPTR(long, D3D12CreateComputePipelineState, ID3D12Device *dDevice, const D3D12_COMPUTE_PIPELINE_STATE_DESC *pDesc, REFIID riid, void **ppPipelineState) //11
 {
 	LOG_ONCE(__FUNCTION__);
-
+	//Log("CreateComputePipline %p", (void *)pDesc->pRootSignature);
 	auto res = oD3D12CreateComputePipelineState(dDevice, pDesc, riid, ppPipelineState);
 
 	RecordStart

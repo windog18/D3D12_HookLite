@@ -224,14 +224,14 @@ dx12::Status::Enum dx12::init(RenderType::Enum _renderType)
 					return Status::UnknownError;
 				}
 
-				g_methodsTable = (uint64_t*)::calloc(44 + 19 + 9 + 60 + 18 + 15 + 3, sizeof(uint64_t));
+				g_methodsTable = (uint64_t*)::calloc(44 + 19 + 9 + 60 + 18 + 15 + 11, sizeof(uint64_t));
 				memcpy(g_methodsTable, *(uint64_t**)device, 44 * sizeof(uint64_t));
 				memcpy(g_methodsTable + 44, *(uint64_t**)commandQueue, 19 * sizeof(uint64_t));
 				memcpy(g_methodsTable + 44 + 19, *(uint64_t**)commandAllocator, 9 * sizeof(uint64_t));
 				memcpy(g_methodsTable + 44 + 19 + 9, *(uint64_t**)commandList, 60 * sizeof(uint64_t));
 				memcpy(g_methodsTable + 44 + 19 + 9 + 60, *(uint64_t**)swapChain, 18 * sizeof(uint64_t));
 				memcpy(g_methodsTable + 44 + 19 + 9 + 60 + 18, *(uint64_t**)d3dResources, 15 * sizeof(uint64_t));
-				memcpy(g_methodsTable + 44 + 19 + 9 + 60 + 18 + 15, *(uint64_t**)rtvHeap, 3 * sizeof(uint64_t));
+				memcpy(g_methodsTable + 44 + 19 + 9 + 60 + 18 + 15, *(uint64_t**)rtvHeap, 11 * sizeof(uint64_t));
 
 				device->Release();
 				device = NULL;

@@ -113,10 +113,11 @@ DECLARE_FUNCTIONPTR(void, D3D12ResourceUnmap, ID3D12Resource *dResource, UINT su
 DECLARE_FUNCTIONPTR(D3D12_RESOURCE_DESC, D3D12ResourceGetDesc, ID3D12Resource *dResource) //10
 {
 	LOG_ONCE(__FUNCTION__);
-	Log_Detail_2(Enum_Device, __FUNCTION__);
+	//Log_Detail_2(Enum_Device, __FUNCTION__);
 	//Log("[D3D12]D3D12Resources GetDesc");
 	return oD3D12ResourceGetDesc(dResource);
-}*/
+}
+*/
 
 
 DECLARE_FUNCTIONPTR(D3D12_GPU_VIRTUAL_ADDRESS,D3D12GetGPUVirtualAddress, ID3D12Resource * dResource) //11
@@ -199,15 +200,15 @@ void CreateHookD3D12ResourceInterface(uint64_t* methodVirtualTable)
 	CREATE_HOOKPAIR((LPVOID)methodVirtualTable[150 + 7], D3D12ResourceGetDevice);*/
 	CREATE_HOOKPAIR((LPVOID)methodVirtualTable[150 + 8], D3D12ResourceMap);
 	CREATE_HOOKPAIR((LPVOID)methodVirtualTable[150 + 9], D3D12ResourceUnmap);
-	//CREATE_HOOKPAIR((LPVOID)methodVirtualTable[150 + 10], D3D12ResourceGetDesc); ??? will crash 
+	//CREATE_HOOKPAIR((LPVOID)methodVirtualTable[150 + 10], D3D12ResourceGetDesc);// ??? will crash 
 	CREATE_HOOKPAIR((LPVOID)methodVirtualTable[150 + 11], D3D12GetGPUVirtualAddress);
 	CREATE_HOOKPAIR((LPVOID)methodVirtualTable[150 + 12], D3D12WriteToSubresource);
 	CREATE_HOOKPAIR((LPVOID)methodVirtualTable[150 + 13], D3D12ReadFromSubresource);
 	CREATE_HOOKPAIR((LPVOID)methodVirtualTable[150 + 14], D3D12GetHeapProperties);
 
 
-	CREATE_HOOKPAIR((LPVOID)methodVirtualTable[150 + 16], D3D12GetCPUDescriptorHandleForHeapStart);
-	CREATE_HOOKPAIR((LPVOID)methodVirtualTable[150 + 17], D3D12GetGPUDescriptorHandleForHeapStart);
+	CREATE_HOOKPAIR((LPVOID)methodVirtualTable[150 + 15 + 9], D3D12GetCPUDescriptorHandleForHeapStart);
+	CREATE_HOOKPAIR((LPVOID)methodVirtualTable[150 + 15 + 10], D3D12GetGPUDescriptorHandleForHeapStart);
 
 	/*MH_EnableHook((LPVOID)methodVirtualTable[150 +  0]);
 	MH_EnableHook((LPVOID)methodVirtualTable[150 +  4]);
@@ -222,8 +223,8 @@ void CreateHookD3D12ResourceInterface(uint64_t* methodVirtualTable)
 	MH_EnableHook((LPVOID)methodVirtualTable[150 + 13]);
 	MH_EnableHook((LPVOID)methodVirtualTable[150 + 14]);
 
-	MH_EnableHook((LPVOID)methodVirtualTable[150 + 16]);
-	MH_EnableHook((LPVOID)methodVirtualTable[150 + 17]);
+	MH_EnableHook((LPVOID)methodVirtualTable[150 + 15 + 9]);
+	MH_EnableHook((LPVOID)methodVirtualTable[150 + 15 + 10]);
 }
 
 
