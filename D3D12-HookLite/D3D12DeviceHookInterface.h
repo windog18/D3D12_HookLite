@@ -46,11 +46,11 @@ DECLARE_FUNCTIONPTR(long, D3D12CreateCommandAllocator, ID3D12Device *dDevice, D3
 
 	RecordStart
 	MemStream* streaminstance = GetStreamFromThreadID();
-	streaminstance->write(Device_CreateCommandAllocator);
+	/*streaminstance->write(Device_CreateCommandAllocator);
 	streaminstance->write(dDevice);
 	streaminstance->write(type);
 	streaminstance->write(riid);
-	streaminstance->write(*ppCommandAllocator);
+	streaminstance->write(*ppCommandAllocator);*/
 	RecordEnd
 
 	return res;
@@ -75,7 +75,7 @@ DECLARE_FUNCTIONPTR(long, D3D12CreateGraphicsPipelineState, ID3D12Device *dDevic
 DECLARE_FUNCTIONPTR(long, D3D12CreateComputePipelineState, ID3D12Device *dDevice, const D3D12_COMPUTE_PIPELINE_STATE_DESC *pDesc, REFIID riid, void **ppPipelineState) //11
 {
 	LOG_ONCE(__FUNCTION__);
-	//Log("CreateComputePipline %p", (void *)pDesc->pRootSignature);
+
 	auto res = oD3D12CreateComputePipelineState(dDevice, pDesc, riid, ppPipelineState);
 
 	RecordStart
@@ -105,6 +105,14 @@ DECLARE_FUNCTIONPTR(long, D3D12CheckFeatureSupport, ID3D12Device *dDevice, D3D12
 	return oD3D12CheckFeatureSupport(dDevice, Feature, pFeatureSupportData, FeatureSupportDataSize);
 }
 
+DECLARE_FUNCTIONPTR(UINT, D3D12GetDescriptorHandleIncrementSize, ID3D12Device *dDevice, D3D12_DESCRIPTOR_HEAP_TYPE DescriptorHeapType) //15
+{
+	LOG_ONCE(__FUNCTION__);
+	//Log("[d3d12] D3D12GetDescriptorHandleIncrementSize");
+	return oD3D12GetDescriptorHandleIncrementSize(dDevice, DescriptorHeapType);
+}
+
+
 DECLARE_FUNCTIONPTR(long, D3D12CreateDescriptorHeap, ID3D12Device *dDevice, const D3D12_DESCRIPTOR_HEAP_DESC *pDescriptorHeapDesc, REFIID riid, void **ppvHeap) //14
 {
 
@@ -114,23 +122,38 @@ DECLARE_FUNCTIONPTR(long, D3D12CreateDescriptorHeap, ID3D12Device *dDevice, cons
 	auto res = oD3D12CreateDescriptorHeap(dDevice, pDescriptorHeapDesc, riid, (void **)&pheap);
 	*ppvHeap = pheap;
 
+	D3D12_CPU_DESCRIPTOR_HANDLE cpuhandle = pheap->GetCPUDescriptorHandleForHeapStart();
+	D3D12_GPU_DESCRIPTOR_HANDLE gpuhandle = pheap->GetGPUDescriptorHandleForHeapStart();
+
+	
+
 	RecordStart
+	UINT descriptorsize = oD3D12GetDescriptorHandleIncrementSize(dDevice, pDescriptorHeapDesc->Type);
 	MemStream* streaminstance = GetStreamFromThreadID();
 	streaminstance->write(Device_CreateDescriptorHeap);
 	streaminstance->write(dDevice);
 	streaminstance->writePointerValue(pDescriptorHeapDesc);
 	streaminstance->write(riid);
 	streaminstance->write(pheap);
+	streaminstance->write(cpuhandle);
+	streaminstance->write(gpuhandle);
+	streaminstance->write(descriptorsize);
+
+	if (cpuhandle.ptr % 32 == 5)
+	{
+		streaminstance->descpuadr5 = cpuhandle.ptr;
+		streaminstance->desgpuadr5 = gpuhandle.ptr;
+	}
+	else if (cpuhandle.ptr % 32 == 6)
+	{
+		streaminstance->descpuadr6 = cpuhandle.ptr;
+		streaminstance->desgpuadr6 = gpuhandle.ptr;
+	}
+
 	RecordEnd
 	return res;
 }
 
-DECLARE_FUNCTIONPTR(UINT, D3D12GetDescriptorHandleIncrementSize, ID3D12Device *dDevice, D3D12_DESCRIPTOR_HEAP_TYPE DescriptorHeapType) //15
-{
-	LOG_ONCE(__FUNCTION__);
-	//Log("[d3d12] D3D12GetDescriptorHandleIncrementSize");
-	return oD3D12GetDescriptorHandleIncrementSize(dDevice, DescriptorHeapType);
-}
 
 DECLARE_FUNCTIONPTR(long, D3D12CreateRootSignature, ID3D12Device *dDevice, UINT nodeMask, const void *pBlobWithRootSignature, SIZE_T blobLengthInBytes, 
 REFIID riid, void **ppvRootSignature)                        //16
@@ -150,24 +173,48 @@ REFIID riid, void **ppvRootSignature)                        //16
 		streaminstance->write(riid);
 		streaminstance->write(*ppvRootSignature);
 	RecordEnd
+	
+	ID3D12RootSignatureDeserializer* prootdes;
+	IID iid = __uuidof(ID3D12RootSignatureDeserializer);
+	D3D12CreateRootSignatureDeserializer(pBlobWithRootSignature, blobLengthInBytes, iid, (void**)&prootdes);
+	ID3D12RootSignature* psign = (ID3D12RootSignature *)(*ppvRootSignature);
+	const D3D12_ROOT_SIGNATURE_DESC * pdesc = prootdes->GetRootSignatureDesc();
+	RootSignMap::SetTempMapData(psign,pdesc);
+
 	return ert;
 }
 
 DECLARE_FUNCTIONPTR(void, D3D12CreateConstantBufferView, ID3D12Device *dDevice, const D3D12_CONSTANT_BUFFER_VIEW_DESC *pDesc, D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor) //17
 {
 	LOG_ONCE(__FUNCTION__);
-	//GlobalGathering::GetInstance()->GatherDevice(dDevice);
-	//Log("[d3d12] D3D12CreateConstantBufferView");
 	oD3D12CreateConstantBufferView(dDevice, pDesc, DestDescriptor);
 
-	RecordStart
+	//RecordStart
+
+
+	CBResstr str;
+	bool findres = ResourceVectorData::FindCst(pDesc->BufferLocation, pDesc->SizeInBytes, str);
+	if ( findres == true )
+	{
+		ConstantBufferData Cst;
+		Cst.pres = str.pres;
+		Cst.offset = pDesc->BufferLocation - str.gpu;
+		Cst.bufsize = pDesc->SizeInBytes;
+		CBBufMap::SetTempMapData(DestDescriptor.ptr, Cst);
+	}
+	
+
+/*
+
 	MemStream* streaminstance = GetStreamFromThreadID();
 	streaminstance->write(Device_CreateConstantBufferView);
 	streaminstance->write(dDevice);
 	streaminstance->writePointerValue(pDesc);
 	streaminstance->write(DestDescriptor);
+	*/
 
-	RecordEnd
+	
+	//RecordEnd
 
 	return;
 }
@@ -175,8 +222,6 @@ DECLARE_FUNCTIONPTR(void, D3D12CreateConstantBufferView, ID3D12Device *dDevice, 
 DECLARE_FUNCTIONPTR(void, D3D12CreateShaderResourceView, ID3D12Device *dDevice, ID3D12Resource *pResource, const D3D12_SHADER_RESOURCE_VIEW_DESC *pDesc, D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor) //18
 {
 	LOG_ONCE(__FUNCTION__);
-	//GlobalGathering::GetInstance()->GatherDevice(dDevice);
-	//Log("[d3d12] D3D12CreateShaderResourceView");
 	oD3D12CreateShaderResourceView(dDevice, pResource, pDesc, DestDescriptor);
 
 
@@ -185,11 +230,30 @@ DECLARE_FUNCTIONPTR(void, D3D12CreateShaderResourceView, ID3D12Device *dDevice, 
 	streaminstance->write(Device_CreateShaderResourceView);
 	streaminstance->write(dDevice);
 	streaminstance->write(pResource);
+	if (pResource != NULL)
+	{
+		D3D12_RESOURCE_DESC desc = pResource->GetDesc();
+		streaminstance->write(desc);
+	}
 	streaminstance->writePointerValue(pDesc);
 	streaminstance->write(DestDescriptor);
-
-
 	RecordEnd
+
+	size_t ptr = DestDescriptor.ptr;
+	SRVStr str;
+	if (pDesc == NULL)
+	{
+		str.desc = NULL;
+	}
+	else
+	{
+		str.desc = new D3D12_SHADER_RESOURCE_VIEW_DESC;
+		memcpy(str.desc, pDesc, sizeof(D3D12_SHADER_RESOURCE_VIEW_DESC));
+	}
+	str.pResource = pResource;
+	SrvMap::SetTempMapData(ptr, str);
+
+	
 }
 
 DECLARE_FUNCTIONPTR(void, D3D12CreateUnorderedAccessView, ID3D12Device *dDevice, ID3D12Resource *pResource, ID3D12Resource *pCounterResource,
@@ -258,6 +322,12 @@ DECLARE_FUNCTIONPTR(void, D3D12CreateSampler, ID3D12Device *dDevice, const D3D12
 	instancestream->write(*pDesc);
 	instancestream->write(DestDescriptor);
 	RecordEnd
+
+/*
+	size_t ptr = DestDescriptor.ptr;
+	D3D12_SAMPLER_DESC* desc = new D3D12_SAMPLER_DESC;
+	memcpy(desc, pDesc, sizeof(D3D12_SAMPLER_DESC));
+	SamplerMap::SetTempMapData(ptr, desc);*/
 }
 
 
@@ -268,52 +338,147 @@ const UINT *pSrcDescriptorRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE DescriptorHeaps
 
 	LOG_ONCE(__FUNCTION__);
 
+	size_t deshandle = pDestDescriptorRangeStarts[0].ptr;
+	UINT descriptorsize = dDevice->GetDescriptorHandleIncrementSize(DescriptorHeapsType);
 
+	MemStream* instancestream = GetStreamFromThreadID();
+	//copy static descriptor heap into map
+	//if (deshandle < 0xc50000 || !instancestream->beginRecordPresent)
+	{
+		for (UINT i = 0; i < NumSrcDescriptorRanges; i++)
+		{
+			size_t srchandle = pSrcDescriptorRangeStarts[i].ptr;
+			if (pSrcDescriptorRangeSizes == NULL)
+			{
+				DescriptorRemap::SetTempMapData(deshandle, srchandle);
+				srchandle += descriptorsize;
+				deshandle += descriptorsize;
+			}
+			else
+			{
+				for (UINT j = 0; j < pSrcDescriptorRangeSizes[i]; j++)
+				{
+					DescriptorRemap::SetTempMapData(deshandle, srchandle);
+					srchandle += descriptorsize;
+					deshandle += descriptorsize;
+				}
+			}
+		}
+	}
 
 	oD3D12CopyDescriptors(dDevice, NumDestDescriptorRanges, pDestDescriptorRangeStarts, pDestDescriptorRangeSizes,
 		NumSrcDescriptorRanges, pSrcDescriptorRangeStarts, pSrcDescriptorRangeSizes, DescriptorHeapsType);
 
 
 	RecordStart
-	MemStream* instancestream = GetStreamFromThreadID();
+	
 	instancestream->write(Device_CopyDescriptors);
 	instancestream->write(dDevice);
 	instancestream->write(NumDestDescriptorRanges);
 	instancestream->write(DescriptorHeapsType);
 
- 	D3D12_CPU_DESCRIPTOR_HANDLE handle = *pDestDescriptorRangeStarts;
- 	instancestream->write(handle);
-
- 	handle = *pSrcDescriptorRangeStarts;
- 	instancestream->write(handle);
  
-	for (UINT i = 0; i < NumDestDescriptorRanges; i++){
+	for (UINT i = 0; i < NumDestDescriptorRanges; i++)
+	{
+		instancestream->write(pDestDescriptorRangeStarts[i]);
 		instancestream->write(pDestDescriptorRangeSizes[i]);
 	}
 
 	instancestream->write(NumSrcDescriptorRanges);
 
-
 	for (UINT i = 0; i < NumSrcDescriptorRanges; i++){
+		instancestream->write(pSrcDescriptorRangeStarts[i]);
 		if (pSrcDescriptorRangeSizes == NULL) {
-			UINT zeroVal = 0;
-			instancestream->write(zeroVal);
+			UINT oneVal = 1;
+			instancestream->write(oneVal);
 		}
 		else {
 			instancestream->write(pSrcDescriptorRangeSizes[i]);
 		}
-		//instancestream->write(pSrcDescriptorRangeSizes[i]);
 	}
+	
+	/*if (instancestream->beginRecordPresent)
+	{
+		std::vector<size_t> srcDesarray;
+		for (UINT i = 0; i < NumSrcDescriptorRanges; i++)
+		{
+			size_t srchandle = pSrcDescriptorRangeStarts[i].ptr;
+			if (pSrcDescriptorRangeSizes == NULL)
+			{
+				srcDesarray.push_back(srchandle);
+				srchandle += descriptorsize;
+			}
+			else
+			{
+				for (UINT j = 0; j < pSrcDescriptorRangeSizes[i]; j++)
+				{
+					srcDesarray.push_back(srchandle);
+					srchandle += descriptorsize;
+				}
+			}
+		}
 
+		CoypDesStr str;
+
+		str.numsrcdes = srcDesarray.size();
+		str.srccpuhandle = new size_t[str.numsrcdes];
+		memcpy(str.srccpuhandle, &srcDesarray[0], sizeof(size_t)*str.numsrcdes);
+		str.dstcpuhandle = pDestDescriptorRangeStarts[0].ptr;
+		
+		instancestream->CopyDesmap[str.dstcpuhandle] = str;
+	}*/
+	//
  	RecordEnd
-	return;
+
 }
 
 DECLARE_FUNCTIONPTR(void, D3D12CopyDescriptorsSimple, ID3D12Device *dDevice, UINT NumDescriptors, D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptorRangeStart,
 D3D12_CPU_DESCRIPTOR_HANDLE SrcDescriptorRangeStart, D3D12_DESCRIPTOR_HEAP_TYPE DescriptorHeapsType) //24
 {
 	LOG_ONCE(__FUNCTION__);
-	return oD3D12CopyDescriptorsSimple(dDevice, NumDescriptors, DestDescriptorRangeStart, SrcDescriptorRangeStart, DescriptorHeapsType);
+
+	//copy static descriptor heap into map
+	UINT descriptorsize = dDevice->GetDescriptorHandleIncrementSize(DescriptorHeapsType);
+	MemStream* instancestream = GetStreamFromThreadID();
+	if (DestDescriptorRangeStart.ptr < 0xc50000 || !instancestream->beginRecordPresent)
+	{
+		
+		for (size_t i = 0; i < NumDescriptors; i++)
+		{
+			size_t deshandle = DestDescriptorRangeStart.ptr + i * descriptorsize;
+			size_t srchandle = SrcDescriptorRangeStart.ptr + i * descriptorsize;
+
+			DescriptorRemap::SetTempMapData(deshandle, srchandle);
+		}
+	}
+	 oD3D12CopyDescriptorsSimple(dDevice, NumDescriptors, DestDescriptorRangeStart, SrcDescriptorRangeStart, DescriptorHeapsType);
+
+	RecordStart
+	
+	instancestream->write(Device_CopyDescriptorsSimple);
+	instancestream->write(dDevice);
+	instancestream->write(NumDescriptors);
+	instancestream->write(DestDescriptorRangeStart);
+	instancestream->write(SrcDescriptorRangeStart);
+	instancestream->write(DescriptorHeapsType);
+
+	if (instancestream->beginRecordPresent)
+	{
+		CoypDesStr str;
+		str.numsrcdes = NumDescriptors;
+		str.srccpuhandle = new size_t[str.numsrcdes];
+
+		for (UINT i = 0; i < str.numsrcdes; i++)
+		{
+			str.srccpuhandle[i] = SrcDescriptorRangeStart.ptr + i* descriptorsize;
+		}
+		str.dstcpuhandle = DestDescriptorRangeStart.ptr;
+		
+		instancestream->CopyDesmap[str.dstcpuhandle] = str;
+	}
+
+	RecordEnd
+		
 }
 
 DECLARE_FUNCTIONPTR(D3D12_RESOURCE_ALLOCATION_INFO, D3D12GetResourceAllocationInfo, ID3D12Device *dDevice, UINT visibleMask,
@@ -355,6 +520,30 @@ void **ppvResource) //27
 	streaminstance->writePointerValue(pOptimizedClearValue);
 	streaminstance->write(riidResource);
 	streaminstance->write(pres);
+	//
+	D3D12_GPU_VIRTUAL_ADDRESS gpuadr =  pres->GetGPUVirtualAddress();
+	streaminstance->write(gpuadr);
+
+	if (gpuadr != 0)
+	{
+		if (InitialResourceState&D3D12_RESOURCE_STATE_GENERIC_READ || InitialResourceState & D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER)
+		{
+			CBResstr str;
+			str.pres = pres;
+			str.gpu = gpuadr;
+			str.bufsize = pDesc->Width;
+			ResourceVectorData::Add(str);
+		}
+		else if (pDesc->Width <= 0x200)
+		{
+			CBResstr str;
+			str.pres = pres;
+			str.gpu = gpuadr;
+			str.bufsize = pDesc->Width;
+			ResourceVectorData::Add(str);
+		}
+	}
+
 	RecordEnd
 	return result;
 }
@@ -383,10 +572,14 @@ D3D12_RESOURCE_STATES InitialState, const D3D12_CLEAR_VALUE *pOptimizedClearValu
 	auto res = oD3D12CreatePlacedResource(dDevice, pHeap, HeapOffset, pDesc, InitialState, pOptimizedClearValue, riid, ppvResource);
 
 	RecordStart
+
+	D3D12_HEAP_DESC  desc =	pHeap->GetDesc();
+
 	MemStream* streaminstance = GetStreamFromThreadID();
 	streaminstance->write(Device_CreatePlacedResource);
 	streaminstance->write(dDevice);
 	streaminstance->write(pHeap);
+	streaminstance->write(desc);
 	streaminstance->write(HeapOffset);
 	streaminstance->write(*pDesc);
 	streaminstance->write(InitialState);
@@ -425,6 +618,7 @@ DWORD Access, LPCWSTR Name, HANDLE *pHandle) //31
 DECLARE_FUNCTIONPTR(long, D3D12OpenSharedHandle, ID3D12Device *dDevice, HANDLE NTHandle, REFIID riid, void **ppvObj) //32
 {
 	LOG_ONCE(__FUNCTION__);
+	return oD3D12OpenSharedHandle(dDevice, NTHandle, riid, ppvObj);
 	return oD3D12OpenSharedHandle(dDevice, NTHandle, riid, ppvObj);
 }
 
@@ -572,6 +766,7 @@ void CreateHookD3D12DeviceInterface(uint64_t* methodVirtualTable)
 	MH_EnableHook((LPVOID)methodVirtualTable[21]);
 	MH_EnableHook((LPVOID)methodVirtualTable[22]);
 	MH_EnableHook((LPVOID)methodVirtualTable[23]);
+	MH_EnableHook((LPVOID)methodVirtualTable[24]);
 	MH_EnableHook((LPVOID)methodVirtualTable[27]);
 	MH_EnableHook((LPVOID)methodVirtualTable[28]);
 	MH_EnableHook((LPVOID)methodVirtualTable[29]);
@@ -590,18 +785,4 @@ void CreateHookD3D12DeviceInterface(uint64_t* methodVirtualTable)
 
 	MH_EnableHook((LPVOID)methodVirtualTable[42]);
 	MH_EnableHook((LPVOID)methodVirtualTable[43]);
-}
-
-
-void CreateHookD3D12DeviceInterfaceForTexture(uint64_t* methodVirtualTable)
-{
-
-	CREATE_HOOKPAIR((LPVOID)methodVirtualTable[27], D3D12CreateCommittedResource);
-	CREATE_HOOKPAIR((LPVOID)methodVirtualTable[28], D3D12CreateHeap);
-	CREATE_HOOKPAIR((LPVOID)methodVirtualTable[29], D3D12CreatePlacedResource);
-	CREATE_HOOKPAIR((LPVOID)methodVirtualTable[30], D3D12CreateReservedResource);
-	MH_EnableHook((LPVOID)methodVirtualTable[27]);
-	MH_EnableHook((LPVOID)methodVirtualTable[28]);
-	MH_EnableHook((LPVOID)methodVirtualTable[29]);
-	MH_EnableHook((LPVOID)methodVirtualTable[30]);
 }

@@ -9,13 +9,44 @@
 #include <mutex>
 #include <iostream>
 #include <fstream>
+#include <map>
 #include "Common.h"
-
 using namespace std;
 
 
-//void SaveRecordToFile(const char* name);
-//void ResetStream();
+
+template <typename T>
+class Temstruct
+{
+public:
+	Temstruct()
+	{
+		valuenum = 0;
+	}
+
+	inline void AddValue(T val);
+
+public:
+	UINT valuenum;
+	T values[32];
+};
+
+template <typename T>
+inline void Temstruct<T>::AddValue(T val)
+{
+
+	UINT adr = valuenum % 32;
+	values[adr] = val;
+	valuenum++;
+}
+
+
+struct CoypDesStr
+{
+	size_t dstcpuhandle;
+	size_t* srccpuhandle;
+	size_t numsrcdes;
+};
 
 class MemStream
 {
@@ -29,12 +60,29 @@ private:
 
 	INT64 streamcount;
 	
+	/*std::vector<unsigned char> cbmemhandle;
+	unsigned char* cbstreamhandle;
+	INT64 cbstreamcount;*/
 
 	stringstream nameListCache;
 
 public:
 	std::mutex m_gMutex;
 
+	std::map<ID3D12GraphicsCommandList*, const D3D12_ROOT_SIGNATURE_DESC *> m_DescMap;
+
+public:
+	//save last getgpuvirtualadr resources
+	Temstruct<CoypDesStr> copydesarray;
+
+	std::map<size_t, CoypDesStr> CopyDesmap;
+	bool beginRecordPresent;
+
+	UINT64 desgpuadr5;
+	size_t descpuadr5;
+
+	UINT64 desgpuadr6;
+	size_t descpuadr6;
 
 public:
 	MemStream();
@@ -97,17 +145,11 @@ public:
 	inline void WriteToMemStream(const void *src, size_t tSize) {
 		std::lock_guard<std::mutex> locker(m_gMutex);
 		if (tSize + streamcount >= memhandle.size()) {
-			size_t increSize = memhandle.size() * 1.5;
+			size_t increSize = memhandle.size() * 2;
 			if (tSize > memhandle.size()) {
 				increSize = (size_t)(1.5 * tSize);
 			}
-
-			if (increSize > memhandle.max_size()) {
-				Log("max vector size exe!!!!!!!!!!!");
-			}
 			if (increSize > 1024 * 1024 * 1024) {
-
-				//Log("incre large memory: %.2f", (1.5 * tSize) / (1024 * 1024 * 1024));
 // 				Log_Detail_1(Enum_other1, "writeBuffer: %d, bufferSize: %d", streamcount + tSize, memhandle.size());
 // 				Log_Detail_1(Enum_other1, "incre large memory: %.2f", (1.5 * tSize) / (1024 * 1024 * 1024));
 			}
@@ -216,7 +258,4 @@ inline void MemStream::read(CommandEnum& enu)
 	streamhandle = (unsigned char*)streamhandle + sizeof(CommandEnum);
 
 }
-
-
-
 

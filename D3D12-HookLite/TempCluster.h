@@ -4,39 +4,111 @@
 #include <map>
 
 class MemStream;
-template<typename Key, typename Value, int N = 0>
-class ResourceTempData {
+
+#define DECLARE_MAP(ClassName,Key,Value) \
+class ClassName {\
+public:\
+	\
+	static void SetTempMapData(Key threadID, Value ptr) {\
+		std::lock_guard<std::mutex> lock(m_sMutex);\
+		m_sTempMap[threadID] = ptr;\
+	}\
+	\
+	static bool GetTempMapData(Key threadID, Value &ptr) {\
+\
+		bool hasvalue = false;\
+		{\
+			std::lock_guard<std::mutex> lock(m_sMutex);\
+			if (m_sTempMap.find(threadID) != m_sTempMap.end())\
+			{\
+				ptr = m_sTempMap[threadID];\
+				hasvalue = true;\
+			}\
+		}\
+		return hasvalue;\
+	}\
+	\
+	static void Reset() {\
+		std::lock_guard<std::mutex> lock(m_sMutex);\
+		m_sTempMap.clear();\
+	}\
+private:\
+	static std::map<Key, Value>  m_sTempMap;\
+	static std::mutex m_sMutex; \
+};
+
+#define IMPLEMENT_MAP(ClassName,Key,Value ) \
+std::map<Key,Value> ClassName::m_sTempMap;\
+std::mutex ClassName::m_sMutex;
+
+DECLARE_MAP(DescriptorRemap,size_t,size_t)
+
+struct SRVStr
+{
+	D3D12_SHADER_RESOURCE_VIEW_DESC* desc;	
+	ID3D12Resource *pResource;
+};
+DECLARE_MAP(SrvMap, size_t, SRVStr)
+
+DECLARE_MAP(SamplerMap, size_t, D3D12_SAMPLER_DESC*)
+
+DECLARE_MAP(RootSignMap, ID3D12RootSignature*, const D3D12_ROOT_SIGNATURE_DESC*)
+
+struct CBResstr
+{
+	D3D12_GPU_VIRTUAL_ADDRESS gpu;
+	UINT64 bufsize;
+	ID3D12Resource* pres;
+};
+
+struct ConstantBufferData
+{
+	ID3D12Resource* pres;
+	UINT64 offset;
+	UINT bufsize;
+};
+DECLARE_MAP(CBBufMap, size_t, ConstantBufferData)
+
+
+
+class ResourceVectorData {
 public:
 
-	static void SetTempMapData(Key threadID, Value ptr) {
+	static void Add(CBResstr ptr) {
 		std::lock_guard<std::mutex> lock(m_sMutex);
-		m_sTempMap[threadID] = ptr;
+		m_sTempVector.push_back(ptr);
 	}
 
-
-	static Value GetTempMapData(Key threadID) {
-		Value ptr = NULL;
+	
+	static bool FindCst(UINT64 gpuadr,UINT bufsize, CBResstr& ptr) {
+		std::lock_guard<std::mutex> lock(m_sMutex);
+		bool hasvaule = false;
+		for (size_t i = 0;i < m_sTempVector.size();i++)
 		{
-			std::lock_guard<std::mutex> lock(m_sMutex);
-			if (m_sTempMap.find(threadID) != m_sTempMap.end())
-				ptr = m_sTempMap[threadID];
+			CBResstr& str = m_sTempVector[i];
+			if (gpuadr >= str.gpu && gpuadr <= str.gpu + str.bufsize)
+			{
+				ptr = str;
+				hasvaule = true;
+				break;
+			}
 		}
-		return ptr;
+		return hasvaule;
 	}
 
 	static void Reset() {
 		std::lock_guard<std::mutex> lock(m_sMutex);
-		m_sTempMap.clear();
+		m_sTempVector.clear();
 	}
 private:
-	static std::map<Key, Value>  m_sTempMap;
+	static std::vector<CBResstr>  m_sTempVector;
 
 	static std::mutex m_sMutex;
 };
 
-#define IMPLEMENT_RESOURCE_DATA(Key, Value, N0) \
-std::map<Key, Value> ResourceTempData<Key, Value,N0>::m_sTempMap; \
-std::mutex ResourceTempData<Key, Value,N0>::m_sMutex;
+
+
+
 
 void ResetRecordState();
 class TempCluster
@@ -134,16 +206,12 @@ public:
 
 	void ResetRecordState();
 	MemStream *GetOrCreateMemStream(DWORD threadID);
-
-	MemStream *GetOrCreateTempStream(DWORD threadID);
 private:
 	static TempCluster *m_sSingleton;
 
 
 	std::mutex m_sMutex;
 	std::map<DWORD, MemStream *> m_sRecordMemStreamMap;
-
-	std::map<DWORD, MemStream *> m_sTempWriteMemStreamMap;
 
 	int m_RecordState;
 	std::mutex m_recordMutex;
@@ -152,6 +220,11 @@ private:
 #define RecordStart \
 	if( TempCluster::GetInstance()->IsRecordingData() ) \
 	 {\
+
+/*
+#define RecordStart \
+	if( 0 ) \
+	 {\*/
 
 #define RecordEnd \
 	}

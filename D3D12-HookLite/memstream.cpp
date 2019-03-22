@@ -57,7 +57,6 @@ void MemStream::reset()
 {
 	streamcount = 0;
 	streamhandle = &memhandle[0];
-	memset(&memhandle[0], 0, memhandle.size());
 
 	nameListCache.clear();
 }
@@ -67,6 +66,10 @@ void MemStream::reset()
 MemStream::MemStream()
 {
 	memhandle.clear();
+
+	beginRecordPresent = false;
+
+	
 
 }
 
@@ -113,13 +116,7 @@ void MemStream::write(CommandEnum enu)
 
 	int datasize = sizeof(CommandEnum);
 	WriteToMemStream(&enu, datasize);
-// 	if (datasize + streamcount >= MaxDatasize) {
-// 		Log_Detail_0(Enum_other1, "error! out of range");
-// 		return;
-// 	}
-// 	memcpy(streamhandle, &enu, datasize);
-// 	streamcount += sizeof(CommandEnum);
-// 	streamhandle = (unsigned char*)streamhandle + datasize;
+
 	std::lock_guard<std::mutex> locker(m_gMutex);
 	std::string commandName = enum_to_string(enu);
 	commandName = commandName + "\n";
@@ -162,6 +159,8 @@ void MemStream::write(const D3D12_INPUT_LAYOUT_DESC& desc)
 		write(desc.pInputElementDescs[i].InstanceDataStepRate);
 
 	}
+
+	
 }
 
 void MemStream::read(D3D12_COMMAND_SIGNATURE_DESC& desc)

@@ -4,6 +4,8 @@
 
 #include "main.h"
 
+#include "D3D12DeviceHookInterface.h"
+//#include "D3D12ResourceHookInterface.h"
 #include "D3D12CommandListHookInterface.h"
 #include "D3D12CommandQueueHookInterface.h"
 
@@ -54,10 +56,11 @@ long __stdcall hkPresent12(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT F
 	}
 
 	RecordSpecialStart
+
 	auto streaminstance = GetStreamFromThreadID();
 	streaminstance->write(SWAPCHAIN_PRESENT);
-	//streaminstance->write(pSwapChain);
-	//streaminstance->
+	streaminstance->beginRecordPresent = true;
+	
 	RecordSpecialEnd
 
 	if (TempCluster::GetInstance()->IsRecordingEnd()) {
@@ -252,15 +255,10 @@ int dx12Thread()
 			OutputDebugStringA("hook failed");
 		}
 
-#ifndef CAPTURE_TEXTURE_ONLY
 		CreateHookD3D12ResourceInterface(dx12::getMethodsTable());
- 		CreateHookD3D12DeviceInterface(dx12::getMethodsTable());
- 		CreateHookD3D12CommandListInterface(dx12::getMethodsTable());
-#else
-		CreateHookD3D12DeviceInterfaceForTexture(dx12::getMethodsTable());
-		CreateHookD3D12ResourceInterfaceForTexture(dx12::getMethodsTable());
-		CreateHookD3D12CommandListInterfaceForTexture(dx12::getMethodsTable());
-#endif // !CAPTURE_TEXTURE_ONLY
+		CreateHookD3D12DeviceInterface(dx12::getMethodsTable());
+		CreateHookD3D12CommandListInterface(dx12::getMethodsTable());
+
 	}
 
 	return 0;

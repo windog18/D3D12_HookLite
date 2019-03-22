@@ -45,14 +45,12 @@ DECLARE_FUNCTIONPTR(HRESULT, D3D12ResourceMap, ID3D12Resource *dResource, UINT s
 	LOG_ONCE(__FUNCTION__);
 
 	HRESULT result = oD3D12ResourceMap(dResource, subresource, pReadRange, ppData);
-	ResourceTempData<std::pair<ID3D12Resource *, UINT>, VOID *>::SetTempMapData(std::make_pair(dResource, subresource), *ppData);
 	RecordStart
 	MemStream* streaminstance = GetStreamFromThreadID();
 	streaminstance->write(Resource_Map);
 	streaminstance->write(dResource);
  	streaminstance->write(subresource);
  	streaminstance->writePointerValue(pReadRange);
-	streaminstance->write(*ppData);
 	RecordEnd
 	return result;
 }
@@ -63,7 +61,6 @@ DECLARE_FUNCTIONPTR(void, D3D12ResourceUnmap, ID3D12Resource *dResource, UINT su
 
 	oD3D12ResourceUnmap(dResource, subresource, pWrittenRange);
 	
-
 	RecordStart
 	MemStream* streaminstance = GetStreamFromThreadID();
 
@@ -74,38 +71,6 @@ DECLARE_FUNCTIONPTR(void, D3D12ResourceUnmap, ID3D12Resource *dResource, UINT su
 	streaminstance->write(subresource);
 	streaminstance->writePointerValue(pWrittenRange);
 
-
-	//write the real data
-	streaminstance->write(desc.Dimension);
-	if (desc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
-	{
-		size_t buffersize = desc.Width;	
-		void *tempPtr = ResourceTempData<std::pair<ID3D12Resource *, UINT>, void *>::GetTempMapData(std::make_pair(dResource, subresource));
-		if (tempPtr == NULL) {
-
-			oD3D12ResourceMap(dResource, subresource, pWrittenRange, &tempPtr);
-			streaminstance->write(buffersize);
-			streaminstance->write(tempPtr, buffersize);
-			oD3D12ResourceUnmap(dResource, subresource, pWrittenRange);
-			//buffersize = 0;
-			//streaminstance->write(buffersize);
-			//Log_Detail_0(Enum_other1, "Error! resource map cannot found paired result!");
-		}
-		else {
-			//Log_Detail_0(Enum_other1, "Correct! paired result found! bufferSize: %d", buffersize);
-			streaminstance->write(buffersize);
-			streaminstance->write(tempPtr, buffersize);
-		}
-			
-		
-		
-	}
-	else if (desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE2D)
-	{
-		size_t texsize = desc.Width;
-		//size_t texsize = desc.Width*desc.Height * 4;
-		//streaminstance->write(pTemp, texsize);
-	}
 	RecordEnd
 }
 
@@ -113,11 +78,10 @@ DECLARE_FUNCTIONPTR(void, D3D12ResourceUnmap, ID3D12Resource *dResource, UINT su
 DECLARE_FUNCTIONPTR(D3D12_RESOURCE_DESC, D3D12ResourceGetDesc, ID3D12Resource *dResource) //10
 {
 	LOG_ONCE(__FUNCTION__);
-	//Log_Detail_2(Enum_Device, __FUNCTION__);
+	Log_Detail_2(Enum_Device, __FUNCTION__);
 	//Log("[D3D12]D3D12Resources GetDesc");
 	return oD3D12ResourceGetDesc(dResource);
-}
-*/
+}*/
 
 
 DECLARE_FUNCTIONPTR(D3D12_GPU_VIRTUAL_ADDRESS,D3D12GetGPUVirtualAddress, ID3D12Resource * dResource) //11
@@ -130,6 +94,13 @@ DECLARE_FUNCTIONPTR(D3D12_GPU_VIRTUAL_ADDRESS,D3D12GetGPUVirtualAddress, ID3D12R
 	streaminstance->write(Resource_GetGPUVirtualAddress);
 	streaminstance->write(dResource);
 	streaminstance->write(res);
+
+	/*D3D12_RESOURCE_DESC desc = dResource->GetDesc();
+	ResAndGPuAdr str;
+	str.gpuadr = res;
+	str.pres = dResource;
+	str.ressize = desc.Width;
+	streaminstance->gpuAdrArray.AddValue(str);*/
 	RecordEnd
 
 	return res;
@@ -138,7 +109,6 @@ DECLARE_FUNCTIONPTR(D3D12_GPU_VIRTUAL_ADDRESS,D3D12GetGPUVirtualAddress, ID3D12R
 DECLARE_FUNCTIONPTR(long, D3D12WriteToSubresource, ID3D12Resource *dResource, UINT DstSubresource, const D3D12_BOX *pDstBox, const void *pSrcData, UINT SrcRowPitch, UINT SrcDepthPitch)  //12
 {
 	LOG_ONCE(__FUNCTION__);
-
 	return oD3D12WriteToSubresource(dResource, DstSubresource, pDstBox, pSrcData, SrcRowPitch, SrcDepthPitch);
 }
 
@@ -154,17 +124,27 @@ DECLARE_FUNCTIONPTR(long, D3D12GetHeapProperties, ID3D12Resource *dResource, D3D
 	return oD3D12GetHeapProperties(dResource, pHeapProperties, pHeapFlags);
 }
 
-DECLARE_FUNCTIONPTR(D3D12_DESCRIPTOR_HEAP_DESC, D3D12DescriptorHeapGesDesc, ID3D12DescriptorHeap *desHeap) //15
+
+/*
+DECLARE_FUNCTIONPTR(D3D12_DESCRIPTOR_HEAP_DESC, D3D12DescriptorHeapGesDesc, ID3D12DescriptorHeap *desHeap) //23
 {
 	LOG_ONCE(__FUNCTION__);
+
+	char buf[256];
+	sprintf_s(buf, "2040 the  heap is %d \n", desHeap);
+	OutputDebugStringA(buf);
+
 	return oD3D12DescriptorHeapGesDesc(desHeap);
 }
 
-DECLARE_FUNCTIONPTR(D3D12_CPU_DESCRIPTOR_HANDLE, D3D12GetCPUDescriptorHandleForHeapStart, ID3D12DescriptorHeap *desHeap) //16
+DECLARE_FUNCTIONPTR(D3D12_CPU_DESCRIPTOR_HANDLE, D3D12GetCPUDescriptorHandleForHeapStart, ID3D12DescriptorHeap *desHeap) //24
 { 
 	LOG_ONCE(__FUNCTION__);
 
 	D3D12_CPU_DESCRIPTOR_HANDLE res = oD3D12GetCPUDescriptorHandleForHeapStart(desHeap);
+	char buf[256];
+	sprintf_s(buf, "2040 the cpu handle is %d \n", res.ptr);
+	OutputDebugStringA(buf);
 
 	RecordStart
 	MemStream* streaminstance = GetStreamFromThreadID();
@@ -176,11 +156,15 @@ DECLARE_FUNCTIONPTR(D3D12_CPU_DESCRIPTOR_HANDLE, D3D12GetCPUDescriptorHandleForH
 	return res;
 }
 
-DECLARE_FUNCTIONPTR(D3D12_GPU_DESCRIPTOR_HANDLE, D3D12GetGPUDescriptorHandleForHeapStart, ID3D12DescriptorHeap *desHeap) //17
+DECLARE_FUNCTIONPTR(D3D12_GPU_DESCRIPTOR_HANDLE, D3D12GetGPUDescriptorHandleForHeapStart, ID3D12DescriptorHeap *desHeap) //25
 {
 	LOG_ONCE(__FUNCTION__);
 	D3D12_GPU_DESCRIPTOR_HANDLE res = oD3D12GetGPUDescriptorHandleForHeapStart(desHeap);
 	
+
+	char buf[256];
+	sprintf_s(buf, "2040 the gpu handle is %ld \n", res.ptr);
+	OutputDebugStringA(buf);
 	RecordStart
 	MemStream* streaminstance = GetStreamFromThreadID();
 	streaminstance->write(DesHeap_GetGPUDescriptorHandleForHeapStart);
@@ -188,7 +172,7 @@ DECLARE_FUNCTIONPTR(D3D12_GPU_DESCRIPTOR_HANDLE, D3D12GetGPUDescriptorHandleForH
 	streaminstance->write(res);
 	RecordEnd
 	return res;
-}
+}*/
 
 void CreateHookD3D12ResourceInterface(uint64_t* methodVirtualTable)
 {
@@ -200,15 +184,16 @@ void CreateHookD3D12ResourceInterface(uint64_t* methodVirtualTable)
 	CREATE_HOOKPAIR((LPVOID)methodVirtualTable[150 + 7], D3D12ResourceGetDevice);*/
 	CREATE_HOOKPAIR((LPVOID)methodVirtualTable[150 + 8], D3D12ResourceMap);
 	CREATE_HOOKPAIR((LPVOID)methodVirtualTable[150 + 9], D3D12ResourceUnmap);
-	//CREATE_HOOKPAIR((LPVOID)methodVirtualTable[150 + 10], D3D12ResourceGetDesc);// ??? will crash 
+	//CREATE_HOOKPAIR((LPVOID)methodVirtualTable[150 + 10], D3D12ResourceGetDesc); ??? will crash 
 	CREATE_HOOKPAIR((LPVOID)methodVirtualTable[150 + 11], D3D12GetGPUVirtualAddress);
 	CREATE_HOOKPAIR((LPVOID)methodVirtualTable[150 + 12], D3D12WriteToSubresource);
 	CREATE_HOOKPAIR((LPVOID)methodVirtualTable[150 + 13], D3D12ReadFromSubresource);
 	CREATE_HOOKPAIR((LPVOID)methodVirtualTable[150 + 14], D3D12GetHeapProperties);
-
-
-	CREATE_HOOKPAIR((LPVOID)methodVirtualTable[150 + 15 + 9], D3D12GetCPUDescriptorHandleForHeapStart);
-	CREATE_HOOKPAIR((LPVOID)methodVirtualTable[150 + 15 + 10], D3D12GetGPUDescriptorHandleForHeapStart);
+	
+	
+	//CREATE_HOOKPAIR((LPVOID)methodVirtualTable[150 + 23], D3D12GetHeapProperties);
+	//CREATE_HOOKPAIR((LPVOID)methodVirtualTable[150 + 24], D3D12GetCPUDescriptorHandleForHeapStart);
+	//CREATE_HOOKPAIR((LPVOID)methodVirtualTable[150 + 25], D3D12GetGPUDescriptorHandleForHeapStart);
 
 	/*MH_EnableHook((LPVOID)methodVirtualTable[150 +  0]);
 	MH_EnableHook((LPVOID)methodVirtualTable[150 +  4]);
@@ -223,20 +208,7 @@ void CreateHookD3D12ResourceInterface(uint64_t* methodVirtualTable)
 	MH_EnableHook((LPVOID)methodVirtualTable[150 + 13]);
 	MH_EnableHook((LPVOID)methodVirtualTable[150 + 14]);
 
-	MH_EnableHook((LPVOID)methodVirtualTable[150 + 15 + 9]);
-	MH_EnableHook((LPVOID)methodVirtualTable[150 + 15 + 10]);
-}
-
-
-void CreateHookD3D12ResourceInterfaceForTexture(uint64_t* methodVirtualTable)
-{
-	CREATE_HOOKPAIR((LPVOID)methodVirtualTable[150 + 8], D3D12ResourceMap);
-	CREATE_HOOKPAIR((LPVOID)methodVirtualTable[150 + 9], D3D12ResourceUnmap);
-	CREATE_HOOKPAIR((LPVOID)methodVirtualTable[150 + 12], D3D12WriteToSubresource);
-	CREATE_HOOKPAIR((LPVOID)methodVirtualTable[150 + 13], D3D12ReadFromSubresource);
-
-	MH_EnableHook((LPVOID)methodVirtualTable[150 + 8]);
-	MH_EnableHook((LPVOID)methodVirtualTable[150 + 9]);
-	MH_EnableHook((LPVOID)methodVirtualTable[150 + 12]);
-	MH_EnableHook((LPVOID)methodVirtualTable[150 + 13]);
+	//MH_EnableHook((LPVOID)methodVirtualTable[150 + 23]);
+	//MH_EnableHook((LPVOID)methodVirtualTable[150 + 24]);
+	//MH_EnableHook((LPVOID)methodVirtualTable[150 + 25]);
 }

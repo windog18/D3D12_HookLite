@@ -1,6 +1,5 @@
 #pragma once
 #include "Common.h"
-#include "D3D12DeviceHookInterface.h"
 #include "D3D12ResourceHookInterface.h"
 #include "TempCluster.h"
 ////base bias  44 + 19 + 9 = 72
@@ -155,8 +154,8 @@ DECLARE_FUNCTIONPTR(long, D3D12CommandListClose, ID3D12GraphicsCommandList *dCom
 
 	RecordStart
 	MemStream *streamInstance = GetStreamFromThreadID();
-	streamInstance->write(CommandEnum::CommandList_Close);
-	streamInstance->write(dCommandList);
+	/*streamInstance->write(CommandEnum::CommandList_Close);
+	streamInstance->write(dCommandList);*/
 	RecordEnd
 
 	return res;
@@ -169,10 +168,10 @@ DECLARE_FUNCTIONPTR(long, D3D12CommandListReset, ID3D12GraphicsCommandList *dCom
 
 	RecordStart
 	MemStream *streamInstance = GetStreamFromThreadID();
-	streamInstance->write(CommandEnum::CommandList_Reset);
+	/*streamInstance->write(CommandEnum::CommandList_Reset);
 	streamInstance->write(dCommandList);
 	streamInstance->write(pAllocator);
-	streamInstance->write(pInitialState);
+	streamInstance->write(pInitialState);*/
 	RecordEnd
 
 	return res;
@@ -185,9 +184,8 @@ DECLARE_FUNCTIONPTR(void, D3D12CommandListClearState, ID3D12GraphicsCommandList 
 
 	RecordStart
 	MemStream *streamInstance = GetStreamFromThreadID();
-	streamInstance->write(CommandEnum::CommandList_ClearState);
-	streamInstance->write(dCommandList);
-	//streamInstance->write();
+	/*streamInstance->write(CommandEnum::CommandList_ClearState);
+	streamInstance->write(dCommandList);*/
 	RecordEnd
 
 	return;
@@ -247,7 +245,9 @@ DECLARE_FUNCTIONPTR(void, D3D12Dispatch, ID3D12GraphicsCommandList *dCommandList
 DECLARE_FUNCTIONPTR(void, D3D12CopyBufferRegion, ID3D12GraphicsCommandList *dCommandList, ID3D12Resource *pDstBuffer, UINT64 DstOffset, ID3D12Resource *pSrcBuffer, UINT64 SrcOffset, UINT64 NumBytes) // 72 + 15
 {
 	LOG_ONCE(__FUNCTION__);
-	oD3D12CopyBufferRegion(dCommandList, pDstBuffer, DstOffset, pSrcBuffer, SrcOffset, NumBytes);
+	
+
+
 	RecordStart
 	MemStream *streamInstance = GetStreamFromThreadID();
 	streamInstance->write(CommandEnum::CommandList_CopyBufferRegion);
@@ -257,17 +257,32 @@ DECLARE_FUNCTIONPTR(void, D3D12CopyBufferRegion, ID3D12GraphicsCommandList *dCom
 	streamInstance->write(pSrcBuffer);
 	streamInstance->write(SrcOffset);
 	streamInstance->write(NumBytes);
+
+	D3D12_RANGE readrange;
+	readrange.Begin = SrcOffset;
+	readrange.End = SrcOffset + NumBytes;
+	UINT8* pdata;
+
+	D3D12_RESOURCE_DESC desc =  pSrcBuffer->GetDesc();
+	oD3D12ResourceMap(pSrcBuffer, 0, &readrange, (void**)&pdata);
+	//if (SrcOffset + NumBytes <= desc.Width)
+	{
+		streamInstance->write(pdata + SrcOffset, NumBytes);
+	}
+	oD3D12ResourceUnmap(pSrcBuffer, 0, &readrange);
 	RecordEnd
+
+	oD3D12CopyBufferRegion(dCommandList, pDstBuffer, DstOffset, pSrcBuffer, SrcOffset, NumBytes);
 }
 
 DECLARE_FUNCTIONPTR(void, D3D12CopyTextureRegion, ID3D12GraphicsCommandList *dCommandList, const D3D12_TEXTURE_COPY_LOCATION *pDst, UINT DstX, UINT DstY, UINT DstZ, const D3D12_TEXTURE_COPY_LOCATION *pSrc, const D3D12_BOX *pSrcBox) // 72 + 16
 {
 	LOG_ONCE(__FUNCTION__);
+	oD3D12CopyTextureRegion(dCommandList, pDst, DstX, DstY, DstZ, pSrc, pSrcBox);
+
 	RecordStart
 	MemStream *streamInstance = GetStreamFromThreadID();
 	streamInstance->write(CommandEnum::CommandList_CopyTextureRegion);
-
-
 	streamInstance->write(dCommandList);
 	streamInstance->writePointerValue(pDst);
 	streamInstance->write(DstX);
@@ -276,62 +291,45 @@ DECLARE_FUNCTIONPTR(void, D3D12CopyTextureRegion, ID3D12GraphicsCommandList *dCo
 	streamInstance->writePointerValue(pSrc);
 	streamInstance->writePointerValue(pSrcBox);
 
-#ifdef CAPTURE_TEXTURE_ONLY
 	D3D12_RESOURCE_DESC desc = pSrc->pResource->GetDesc();
 	if (desc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER && DstX == 0 && DstY == 0 && DstZ == 0 && pSrcBox == NULL)
 	{
-		MemStream *tempStreamInstance = TempCluster::GetInstance()->GetOrCreateTempStream(GetCurrentThreadId());
-		BYTE* pData;
+		bool hastexdata = true;
+		streamInstance->write(hastexdata);
+
+		UINT8* pData;
 		auto checkResult = oD3D12ResourceMap(pSrc->pResource, 0, nullptr, reinterpret_cast<void**>(&pData));
 		if (checkResult == S_OK) {
-			BYTE *copyDataOffset = pData + pSrc->PlacedFootprint.Offset;
+			UINT8* copyDataOffset = pData + pSrc->PlacedFootprint.Offset;
 			size_t dataSize = GetRequiredIntermediateSize(pDst->pResource, pDst->SubresourceIndex, 1);
 
-			//size_t dataSize = pSrc->PlacedFootprint.Footprint.RowPitch * pSrc->PlacedFootprint.Footprint.Height * pSrc->PlacedFootprint.Footprint.Depth;
+			
 
 			if (pSrc->PlacedFootprint.Offset + dataSize > desc.Width) {
-				Log("map resource address: %p, offset %d, datasize: %d,%d begin write", (void *)pData, pSrc->PlacedFootprint.Offset, dataSize, desc.Width);
-				Log("image width %d, height %d, format: %d", pSrc->PlacedFootprint.Footprint.Width, pSrc->PlacedFootprint.Footprint.Height, pSrc->PlacedFootprint.Footprint.Format);
-				Log("map resource address: %p, offset %d, datasize: %d,%d end write", (void *)pData, pSrc->PlacedFootprint.Offset, pSrc->PlacedFootprint.Offset + dataSize, desc.Width);
+				OutputDebugStringA("2060 wrong texture copy size misses");
 			}
 			else {
-				if (pSrc->PlacedFootprint.Footprint.Format == DXGI_FORMAT_R8G8B8A8_UNORM) {
-
-					Log("image width %d, height %d, depth %d, datasize: %d", pSrc->PlacedFootprint.Footprint.Width, pSrc->PlacedFootprint.Footprint.Height, pSrc->PlacedFootprint.Footprint.Depth, dataSize);
-				}
-				bool test = true;
-				//tempStreamInstance->write(test);
-				tempStreamInstance->writePointerValue(pSrc);
-				tempStreamInstance->write(dataSize);
-				tempStreamInstance->write(copyDataOffset, dataSize);
-				fs::path basePath = fs::path(UWP::Current::Storage::GetTemporaryPath()) / L"DUMP" / L"Textures";
-
-				wstringstream wss;
-				wss << (INT64)(pDst->pResource);
-				wss << L"_";
-				wss << pDst->SubresourceIndex;
-				wss << ".tex";
-				fs::path writePath = basePath / wss.str();
-				std::error_code ErrorCode;
-				if (fs::create_directories(writePath.parent_path(), ErrorCode) == false && ErrorCode) {
-					Log((std::string("could not create path at: ") + narrow(writePath.c_str())).c_str());
-				}
-				else
-				{
-					std::string charStrs = narrow(writePath.c_str());
-					tempStreamInstance->writetoFile(charStrs.c_str());
-				}
+				
+				streamInstance->writePointerValue(pSrc);
+				streamInstance->write(dataSize);
+				streamInstance->write(copyDataOffset, dataSize);
 			}
 
 			oD3D12ResourceUnmap(pSrc->pResource, 0, nullptr);
 		}
+		else
+		{
+			OutputDebugStringA("2060 texture buffer map failed");
+		}
 
 	}
-#endif
+	else
+	{
+		bool hastexdata = false;
+		streamInstance->write(hastexdata);
+	}
+	
 	RecordEnd
-
-
-	oD3D12CopyTextureRegion(dCommandList, pDst, DstX, DstY, DstZ, pSrc, pSrcBox);
 }
 
 DECLARE_FUNCTIONPTR(void, D3D12CopyResource, ID3D12GraphicsCommandList *dCommandList, ID3D12Resource *pDstResource, ID3D12Resource *pSrcResource) // 72 + 17
@@ -471,6 +469,7 @@ DECLARE_FUNCTIONPTR(void, D3D12SetPipelineState, ID3D12GraphicsCommandList *dCom
 	RecordEnd
 }
 
+
 DECLARE_FUNCTIONPTR(void, D3D12ResourceBarrier, ID3D12GraphicsCommandList *dCommandList, UINT NumBarriers, const D3D12_RESOURCE_BARRIER *pBarriers)  //72 + 26
 {
 	LOG_ONCE(__FUNCTION__);
@@ -478,7 +477,7 @@ DECLARE_FUNCTIONPTR(void, D3D12ResourceBarrier, ID3D12GraphicsCommandList *dComm
 
 	RecordStart
 	MemStream *streamInstance = GetStreamFromThreadID();
-	streamInstance->write(CommandEnum::CommandList_ResourceBarrier);
+	/*streamInstance->write(CommandEnum::CommandList_ResourceBarrier);
 	streamInstance->write(dCommandList);
 	streamInstance->write(NumBarriers);
 
@@ -486,7 +485,7 @@ DECLARE_FUNCTIONPTR(void, D3D12ResourceBarrier, ID3D12GraphicsCommandList *dComm
 	for (UINT i = 0; i < NumBarriers; i++)
 	{
 		streamInstance->write(pBarriers[i]);
-	}
+	}*/
 	RecordEnd
 
 	return;
@@ -514,10 +513,10 @@ DECLARE_FUNCTIONPTR(void, D3D12SetDescriptorHeaps, ID3D12GraphicsCommandList *dC
 	oD3D12SetDescriptorHeaps(dCommandList, NumDescriptorHeaps, ppDescriptorHeaps);
 	RecordStart
 	MemStream *streamInstance = GetStreamFromThreadID();
-	streamInstance->write(CommandEnum::CommandList_SetDescriptorHeaps);
+	/*streamInstance->write(CommandEnum::CommandList_SetDescriptorHeaps);
 	streamInstance->write(dCommandList);
 	streamInstance->write(NumDescriptorHeaps);
-	streamInstance->write(ppDescriptorHeaps, NumDescriptorHeaps * sizeof(ID3D12DescriptorHeap *));
+	streamInstance->write(ppDescriptorHeaps, NumDescriptorHeaps * sizeof(ID3D12DescriptorHeap *));*/
 	RecordEnd
 	return;
 }
@@ -529,9 +528,14 @@ DECLARE_FUNCTIONPTR(void, D3D12SetComputeRootSignature, ID3D12GraphicsCommandLis
 
 	RecordStart
 	MemStream *streamInstance = GetStreamFromThreadID();
-	streamInstance->write(CommandEnum::CommandList_SetComputeRootSignature);
-	streamInstance->write(dCommandList);
-	streamInstance->write(pRootSignature);
+
+	
+		streamInstance->write(CommandEnum::CommandList_SetComputeRootSignature);
+		streamInstance->write(dCommandList);
+		streamInstance->write(pRootSignature);
+		
+	
+	
 	RecordEnd
 
 	return;
@@ -545,10 +549,17 @@ DECLARE_FUNCTIONPTR(void, D3D12SetGraphicsRootSignature, ID3D12GraphicsCommandLi
     oD3D12SetGraphicsRootSignature(dCommandList, pRootSignature);
 
 	RecordStart
-	MemStream* streaminstance = GetStreamFromThreadID();
-	streaminstance->write(CommandList_SetGraphicsRootSignature);
-	streaminstance->write(dCommandList);
-	streaminstance->write(pRootSignature);
+		MemStream* streaminstance = GetStreamFromThreadID();
+		if (streaminstance->beginRecordPresent)
+		{
+		
+			streaminstance->write(CommandList_SetGraphicsRootSignature);
+			streaminstance->write(dCommandList);
+			streaminstance->write(pRootSignature);
+			const D3D12_ROOT_SIGNATURE_DESC * pdesc;
+			bool hasdesc = RootSignMap::GetTempMapData(pRootSignature, pdesc);
+			streaminstance->m_DescMap[dCommandList] = pdesc;
+		}
 	RecordEnd
 }
 
@@ -570,6 +581,249 @@ DECLARE_FUNCTIONPTR(void, D3D12SetComputeRootDescriptorTable, ID3D12GraphicsComm
 	return;
 }
 
+inline void WriteTheCB1(UINT64 remapptr, UINT ptr,UINT i, MemStream* streamInstance)
+{
+	
+	bool hasconstbufer = false;
+	ConstantBufferData cst;
+	hasconstbufer = CBBufMap::GetTempMapData(remapptr, cst);
+
+	if (hasconstbufer == true)
+	{
+		streamInstance->write(hasconstbufer);
+		ID3D12Resource* pres = cst.pres;
+		streamInstance->write(cst.pres);
+		streamInstance->write(cst.offset);
+		streamInstance->write(cst.bufsize);
+
+		UINT8* pdata;
+		D3D12_RANGE range;
+		range.Begin = cst.offset;
+		range.End = cst.offset + cst.bufsize;
+
+		HRESULT hr = oD3D12ResourceMap(pres, 0, &range, (void**)&pdata);
+		if (hr == S_OK)
+		{
+			bool mapsuccess = true;
+			streamInstance->write(mapsuccess);
+			D3D12_RESOURCE_DESC desc = pres->GetDesc();
+			UINT8* pdstdata = new UINT8[cst.bufsize];
+			streamInstance->write(pdata + cst.offset, cst.bufsize);
+		}
+		else
+		{
+			bool mapsuccess = false;
+			streamInstance->write(mapsuccess);
+			streamInstance->write(pres);
+		}
+		oD3D12ResourceUnmap(pres, 0, &range);
+	}
+	else
+	{
+		char buf[256];
+		sprintf(buf, "2060 the debug sth is %x,%x,%d", remapptr, ptr,i);
+		OutputDebugStringA(buf);
+		streamInstance->write(hasconstbufer);
+	}
+}
+
+inline void WriteTheCB(UINT64 remapptr, MemStream* streamInstance)
+{
+
+	bool hasconstbufer = false;
+	ConstantBufferData cst;
+	hasconstbufer = CBBufMap::GetTempMapData(remapptr, cst);
+
+	if (hasconstbufer == true)
+	{
+		streamInstance->write(hasconstbufer);
+		ID3D12Resource* pres = cst.pres;
+		streamInstance->write(cst.pres);
+		streamInstance->write(cst.offset);
+		streamInstance->write(cst.bufsize);
+
+		UINT8* pdata;
+		D3D12_RANGE range;
+		range.Begin = cst.offset;
+		range.End = cst.offset + cst.bufsize;
+
+		HRESULT hr = oD3D12ResourceMap(pres, 0, &range, (void**)&pdata);
+		if (hr == S_OK)
+		{
+			bool mapsuccess = true;
+			streamInstance->write(mapsuccess);
+			D3D12_RESOURCE_DESC desc = pres->GetDesc();
+			UINT8* pdstdata = new UINT8[cst.bufsize];
+			streamInstance->write(pdata + cst.offset, cst.bufsize);
+		}
+		else
+		{
+			bool mapsuccess = false;
+			streamInstance->write(mapsuccess);
+			streamInstance->write(pres);
+		}
+		oD3D12ResourceUnmap(pres, 0, &range);
+	}
+	else
+	{
+		OutputDebugStringA("2060, CB  can not find sth important");
+		streamInstance->write(hasconstbufer);
+	}
+}
+
+inline void WriteTheRemap(UINT64 gpuhandle, MemStream* streamInstance)
+{
+	size_t ptr = streamInstance->descpuadr5 + (gpuhandle - streamInstance->desgpuadr5);
+
+	if (ptr > 0x0010000000)
+	{
+		ptr = (gpuhandle - streamInstance->desgpuadr6) + streamInstance->descpuadr6;
+	}
+
+	size_t remapptr = -1;
+	DescriptorRemap::GetTempMapData(ptr, remapptr);
+	streamInstance->write(remapptr);
+}
+
+inline void WriteTheSrv(UINT64 gpuhandle, MemStream* streamInstance)
+{
+
+	size_t ptr = streamInstance->descpuadr5 + (gpuhandle - streamInstance->desgpuadr5);
+
+	size_t remapptr = -1;
+	DescriptorRemap::GetTempMapData(ptr, remapptr);
+	/*
+	streamInstance->write(remapptr);
+	bool hassrv = false;
+	SRVStr srv;
+	hassrv = SrvMap::GetTempMapData(remapptr, srv);
+
+	if (hassrv == true)
+	{
+		streamInstance->write(hassrv);
+		streamInstance->write(srv.pResource);
+		streamInstance->writePointerValue(srv.desc);
+	}
+	else
+	{
+		streamInstance->write(hassrv);
+	}*/
+}
+
+
+inline void WriteTheSampler(size_t ptr, MemStream* streamInstance)
+{
+
+	size_t remapptr = -1;
+	DescriptorRemap::GetTempMapData(ptr, remapptr);
+
+	bool hassample = false;
+	D3D12_SAMPLER_DESC* pdesc;
+	hassample = SamplerMap::GetTempMapData(remapptr, pdesc);
+	if (hassample)
+	{
+		streamInstance->write(hassample);
+		streamInstance->write(*pdesc);
+	}
+	else
+	{
+		streamInstance->write(hassample);
+	}
+}
+
+std::map<const D3D12_ROOT_SIGNATURE_DESC *, UINT*> descmap;
+UINT getparameterCount(const D3D12_ROOT_PARAMETER& parameter)
+{
+	if (parameter.ParameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
+	{
+		UINT rangenum = parameter.DescriptorTable.NumDescriptorRanges;
+		int count = 0;
+		for (UINT i = 0; i < rangenum; i++)
+		{
+			if (parameter.DescriptorTable.pDescriptorRanges[i].NumDescriptors != 0xffffffff)
+			{
+				count += parameter.DescriptorTable.pDescriptorRanges[i].NumDescriptors;
+			}
+		}
+		return count;
+	}
+	else
+	{
+		return 0;
+	}
+}
+
+UINT* getParadesc(const D3D12_ROOT_SIGNATURE_DESC * pdesc)
+{
+
+	if (descmap.find(pdesc) == descmap.end())
+	{
+		UINT paranum = pdesc->NumParameters;
+		UINT* paras = new UINT[paranum];
+
+		for (UINT i = 0; i < paranum; i++)
+		{
+			const D3D12_ROOT_PARAMETER& parameter = pdesc->pParameters[i];
+			paras[i] = getparameterCount(parameter);
+		}
+		descmap[pdesc] = paras;
+		return paras;
+	}
+	else
+	{
+		return descmap[pdesc];
+	}
+}
+
+
+std::map<const D3D12_ROOT_SIGNATURE_DESC *, UINT*> desccbvmap;
+
+UINT getCBVCount(const D3D12_ROOT_PARAMETER& parameter)
+{
+	if (parameter.ParameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
+	{
+		UINT rangenum = parameter.DescriptorTable.NumDescriptorRanges;
+		int count = 0;
+		for (UINT i = 0; i < rangenum; i++)
+		{
+			if (parameter.DescriptorTable.pDescriptorRanges[i].RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_CBV)
+			{
+				if (parameter.DescriptorTable.pDescriptorRanges[i].NumDescriptors != 0xffffffff)
+				{
+					count += parameter.DescriptorTable.pDescriptorRanges[i].NumDescriptors;
+				}
+			}
+		}
+		return count;
+	}
+	else
+	{
+		return 0;
+	}
+}
+
+UINT* getCBVparadesc(const D3D12_ROOT_SIGNATURE_DESC * pdesc)
+{
+
+	if (desccbvmap.find(pdesc) == desccbvmap.end())
+	{
+		UINT paranum = pdesc->NumParameters;
+		UINT* paras = new UINT[paranum];
+
+		for (UINT i = 0; i < paranum; i++)
+		{
+			const D3D12_ROOT_PARAMETER& parameter = pdesc->pParameters[i];
+			paras[i] = getCBVCount(parameter);
+		}
+		desccbvmap[pdesc] = paras;
+		return paras;
+	}
+	else
+	{
+		return desccbvmap[pdesc];
+	}
+}
+
 DECLARE_FUNCTIONPTR(void, D3D12SetGraphicsRootDescriptorTable, ID3D12GraphicsCommandList *dCommandList, UINT RootParameterIndex, D3D12_GPU_DESCRIPTOR_HANDLE BaseDescriptor) //72 + 32
 {
 	LOG_ONCE(__FUNCTION__);
@@ -581,6 +835,62 @@ DECLARE_FUNCTIONPTR(void, D3D12SetGraphicsRootDescriptorTable, ID3D12GraphicsCom
 	streamInstance->write(RootParameterIndex);
 	streamInstance->write(BaseDescriptor);
 
+
+	
+	
+	if ( streamInstance->beginRecordPresent )
+	{
+
+		size_t ptr = streamInstance->descpuadr5 + (BaseDescriptor.ptr - streamInstance->desgpuadr5);
+
+		if (ptr > 0x0010000000)
+		{
+			ptr = (BaseDescriptor.ptr - streamInstance->desgpuadr6) + streamInstance->descpuadr6;
+		}
+
+
+		const D3D12_ROOT_SIGNATURE_DESC * pdesc = streamInstance->m_DescMap[dCommandList];
+		UINT* cbvarray = getCBVparadesc(pdesc);
+		UINT cbvcount = cbvarray[RootParameterIndex];
+
+		UINT* descarray = getParadesc(pdesc);
+		UINT desccount = descarray[RootParameterIndex];
+
+		if (streamInstance->CopyDesmap.find(ptr) != streamInstance->CopyDesmap.end())
+		{
+			CoypDesStr& remapptr = streamInstance->CopyDesmap[ptr];
+			for (UINT i = 0; i < cbvcount; i++)
+			{
+				streamInstance->write(remapptr.srccpuhandle[i]);
+				WriteTheCB1(remapptr.srccpuhandle[i], ptr, i,streamInstance);
+			}
+			for (UINT i = cbvcount; i < desccount; i++)
+			{
+				streamInstance->write(remapptr.srccpuhandle[i]);
+			}
+		}
+		else
+		{
+			for (UINT i = 0; i < cbvcount; i++)
+			{
+				size_t remapptr = -1;
+				DescriptorRemap::GetTempMapData(ptr, remapptr);
+				streamInstance->write(remapptr);
+				WriteTheCB1(remapptr, ptr, i,streamInstance);
+				ptr += 0x20;
+			}
+			for (UINT i = cbvcount; i < desccount; i++)
+			{
+				size_t remapptr = -1;
+				DescriptorRemap::GetTempMapData(ptr, remapptr);
+				streamInstance->write(remapptr);
+				ptr += 0x20;
+			}
+		}
+
+		
+	
+	}
 
 	RecordEnd
 
@@ -766,7 +1076,22 @@ DECLARE_FUNCTIONPTR(void, D3D12IASetVertexBuffers, ID3D12GraphicsCommandList *dC
 	streaminstance->write(dCommandList);
 	streaminstance->write(StartSlot);
 	streaminstance->write(NumViews);
-	streaminstance->writePointerValue(pViews);
+
+	if (NumViews > 0)
+	{
+		if (pViews == nullptr)
+		{
+			bool nul = true;
+			streaminstance->write(nul);
+			
+		}
+		else
+		{
+			bool nul = false;
+			streaminstance->write(nul);
+			streaminstance->write(pViews,sizeof(D3D12_VERTEX_BUFFER_VIEW)*NumViews);
+		}
+	}
 
 	RecordEnd
 }
@@ -798,7 +1123,6 @@ BOOL RTsSingleHandleToDescriptorRange, const D3D12_CPU_DESCRIPTOR_HANDLE *pDepth
 	ID3D12Device* pdevice;
 	IID riid = __uuidof(ID3D12Device);
 	dCommandList->GetDevice(riid, (void**)&pdevice);
-	//oD3D12CommandListGetDevice(dCommandList, riid, (void**)&pdevice);
 	streamInstance->write(NumRenderTargetDescriptors);
 	if (NumRenderTargetDescriptors > 0)
 	{
@@ -1149,17 +1473,4 @@ void CreateHookD3D12CommandListInterface(uint64_t* methodVirtualTable)
  	MH_EnableHook((LPVOID)methodVirtualTable[72 + 58]);
 // // 
 //  	MH_EnableHook((LPVOID)methodVirtualTable[72 + 59]);
-}
-
-void CreateHookD3D12CommandListInterfaceForTexture(uint64_t* methodVirtualTable)
-{
-	CREATE_HOOKPAIR((LPVOID)methodVirtualTable[72 + 15], D3D12CopyBufferRegion);
-	CREATE_HOOKPAIR((LPVOID)methodVirtualTable[72 + 16], D3D12CopyTextureRegion);
-	CREATE_HOOKPAIR((LPVOID)methodVirtualTable[72 + 17], D3D12CopyResource);
-	CREATE_HOOKPAIR((LPVOID)methodVirtualTable[72 + 18], D3D12CopyTiles);
-
-	//MH_EnableHook((LPVOID)methodVirtualTable[72 + 15]);
-	MH_EnableHook((LPVOID)methodVirtualTable[72 + 16]);
-	//MH_EnableHook((LPVOID)methodVirtualTable[72 + 17]);
-	//MH_EnableHook((LPVOID)methodVirtualTable[72 + 18]);
 }

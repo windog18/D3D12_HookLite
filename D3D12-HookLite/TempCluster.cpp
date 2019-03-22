@@ -3,16 +3,30 @@
 #include <experimental/filesystem>
 namespace fs = std::experimental::filesystem;
 
-std::map<std::pair<ID3D12Resource *, UINT>, void *> ResourceTempData<std::pair<ID3D12Resource *, UINT>, void *>::m_sTempMap;
-std::mutex ResourceTempData<std::pair<ID3D12Resource *, UINT>, void *>::m_sMutex;
 
-//IMPLEMENT_RESOURCE_DATA(std::pair<ID3D12Resource *, UINT>, void *,0)  :????????FIXED ME!
-IMPLEMENT_RESOURCE_DATA(UINT64, ID3D12DescriptorHeap*, 0)
-IMPLEMENT_RESOURCE_DATA(UINT64, ID3D12DescriptorHeap*, 1)
-IMPLEMENT_RESOURCE_DATA(UINT64, ID3D12Resource*, 0)
 
+
+IMPLEMENT_MAP(DescriptorRemap,size_t,size_t)
+IMPLEMENT_MAP( SrvMap, size_t, SRVStr)
+IMPLEMENT_MAP(CBBufMap, size_t, ConstantBufferData)
+IMPLEMENT_MAP(SamplerMap, size_t, D3D12_SAMPLER_DESC*)
+
+IMPLEMENT_MAP(RootSignMap, ID3D12RootSignature*, const D3D12_ROOT_SIGNATURE_DESC*)
+
+std::vector<CBResstr>  ResourceVectorData::m_sTempVector;
+std::mutex ResourceVectorData::m_sMutex;
 
 TempCluster * TempCluster::m_sSingleton = nullptr;
+
+inline std::string narrow(std::wstring const& text)
+{
+	std::locale const loc("");
+	wchar_t const* from = text.c_str();
+	std::size_t const len = text.size();
+	std::vector<char> buffer(len + 1);
+	std::use_facet<std::ctype<wchar_t> >(loc).narrow(from, from + len, '_', &buffer[0]);
+	return std::string(&buffer[0], &buffer[len]);
+}
 
 
 TempCluster * TempCluster::GetInstance()
@@ -49,7 +63,7 @@ void TempCluster::WriteAllBufferToResult()
 	std::lock_guard<std::mutex> guard(m_sMutex);
 
 	size_t count = m_sRecordMemStreamMap.size();
-	//Log_Detail_0(Enum_other1, "total dump files count: %d", count);
+	
 	fs::path basePath = fs::path(UWP::Current::Storage::GetTemporaryPath()) / L"DUMP";
 	for (std::map<DWORD, MemStream *>::iterator it = m_sRecordMemStreamMap.begin(); it != m_sRecordMemStreamMap.end(); it++)
 	{
@@ -85,26 +99,14 @@ MemStream * TempCluster::GetOrCreateMemStream(DWORD threadID)
 {
 	std::lock_guard<std::mutex> guard(m_sMutex);
 	if (m_sRecordMemStreamMap.find(threadID) == m_sRecordMemStreamMap.end()) {
-		//og_Detail_0(Enum_other1, "alloc new memStream for newThread %d", threadID);
+		
 		MemStream *memStream = new MemStream();
 		memStream->init();
 		m_sRecordMemStreamMap.insert(std::make_pair(threadID, memStream));
-		//Log_Detail_0(Enum_other1, "total record memStreamSize: %d", m_sRecordMemStreamMap[m_curRecordMemMapIdx].size());
+		
 
 	}
 	return m_sRecordMemStreamMap[threadID];
-}
-
-MemStream * TempCluster::GetOrCreateTempStream(DWORD threadID)
-{
-	std::lock_guard<std::mutex> guard(m_sMutex);
-	if (m_sTempWriteMemStreamMap.find(threadID) == m_sTempWriteMemStreamMap.end()) {
-		MemStream *memStream = new MemStream();
-		memStream->init();
-		m_sTempWriteMemStreamMap.insert(std::make_pair(threadID, memStream));
-	}
-	m_sTempWriteMemStreamMap[threadID]->reset();
-	return m_sTempWriteMemStreamMap[threadID];
 }
 
 
@@ -122,11 +124,10 @@ void TempCluster::ResetRecordState()
 
 inline void ResetRecordState()
 {
-	///ugly way to do so,try to optimize me!!
-	ResourceTempData<std::pair<ID3D12Resource *, UINT>, void *>::Reset();
-	ResourceTempData<UINT64, ID3D12DescriptorHeap*, 0>::Reset();
-	ResourceTempData<UINT64, ID3D12DescriptorHeap*, 1>::Reset();
-	ResourceTempData<UINT64, ID3D12Resource*>::Reset();
+	
+
+	DescriptorRemap::Reset();
+	
 
 
 	TempCluster::GetInstance()->ResetRecordState();

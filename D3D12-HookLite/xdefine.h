@@ -390,14 +390,8 @@ inline const char *enum_to_string(CommandEnum t) {
 		return "Resource_GetDesc";
 	case Resource_Map:
 		return "Resource_Map";
-
 	case Resource_Unmap:
 		return "Resource_Unmap";
-// 	case Resource_WriteToSubresource:
-// 		return "Resource_WriteToSubresource";
-// 	case Resource_ReadFromSubresource:
-// 		return "Resource_ReadFromSubresource";
-
 	case Resource_GetGPUVirtualAddress:
 		return "Resource_GetGPUVirtualAddress";
 	case DesHeap_GetCPUDescriptorHandleForHeapStart:
