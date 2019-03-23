@@ -258,6 +258,7 @@ int dx12Thread()
 		CreateHookD3D12ResourceInterface(dx12::getMethodsTable());
 		CreateHookD3D12DeviceInterface(dx12::getMethodsTable());
 		CreateHookD3D12CommandListInterface(dx12::getMethodsTable());
+		CreateHookD3D12CommandQueueInterface(dx12::getMethodsTable());
 
 	}
 

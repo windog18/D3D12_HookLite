@@ -856,6 +856,12 @@ DECLARE_FUNCTIONPTR(void, D3D12SetGraphicsRootDescriptorTable, ID3D12GraphicsCom
 		UINT* descarray = getParadesc(pdesc);
 		UINT desccount = descarray[RootParameterIndex];
 
+		ID3D12Device* pdevice;
+		IID riid = __uuidof(ID3D12Device);
+		dCommandList->GetDevice(riid, (void**)&pdevice);
+		UINT descriptorsize = pdevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+
 		if (streamInstance->CopyDesmap.find(ptr) != streamInstance->CopyDesmap.end())
 		{
 			CoypDesStr& remapptr = streamInstance->CopyDesmap[ptr];
@@ -877,14 +883,14 @@ DECLARE_FUNCTIONPTR(void, D3D12SetGraphicsRootDescriptorTable, ID3D12GraphicsCom
 				DescriptorRemap::GetTempMapData(ptr, remapptr);
 				streamInstance->write(remapptr);
 				WriteTheCB1(remapptr, ptr, i,streamInstance);
-				ptr += 0x20;
+				ptr += descriptorsize;
 			}
 			for (UINT i = cbvcount; i < desccount; i++)
 			{
 				size_t remapptr = -1;
 				DescriptorRemap::GetTempMapData(ptr, remapptr);
 				streamInstance->write(remapptr);
-				ptr += 0x20;
+				ptr += descriptorsize;
 			}
 		}
 

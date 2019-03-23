@@ -153,6 +153,7 @@ enum CommandEnum
 	CommandQueue_EndEvent,
 	CommandQueue_Signal,
 	CommandQueue_BeginEvent,
+	CommandQueue_ExecuteCommandLists,
 	Resource_GetDesc,
 	Resource_Map,
 	Resource_Unmap,
@@ -386,6 +387,8 @@ inline const char *enum_to_string(CommandEnum t) {
 		return "CommandQueue_Signal";
 	case CommandQueue_BeginEvent:
 		return "CommandQueue_BeginEvent";
+	case CommandQueue_ExecuteCommandLists:
+		return "CommandQueue_ExecuteCommandLists";
 	case Resource_GetDesc:
 		return "Resource_GetDesc";
 	case Resource_Map:
