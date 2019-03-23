@@ -154,8 +154,8 @@ DECLARE_FUNCTIONPTR(long, D3D12CommandListClose, ID3D12GraphicsCommandList *dCom
 
 	RecordStart
 	MemStream *streamInstance = GetStreamFromThreadID();
-	/*streamInstance->write(CommandEnum::CommandList_Close);
-	streamInstance->write(dCommandList);*/
+	streamInstance->write(CommandEnum::CommandList_Close);
+	streamInstance->write(dCommandList);
 	RecordEnd
 
 	return res;
@@ -168,10 +168,8 @@ DECLARE_FUNCTIONPTR(long, D3D12CommandListReset, ID3D12GraphicsCommandList *dCom
 
 	RecordStart
 	MemStream *streamInstance = GetStreamFromThreadID();
-	/*streamInstance->write(CommandEnum::CommandList_Reset);
+	streamInstance->write(CommandEnum::CommandList_Reset);
 	streamInstance->write(dCommandList);
-	streamInstance->write(pAllocator);
-	streamInstance->write(pInitialState);*/
 	RecordEnd
 
 	return res;
@@ -621,7 +619,7 @@ inline void WriteTheCB1(UINT64 remapptr, UINT ptr,UINT i, MemStream* streamInsta
 	else
 	{
 		char buf[256];
-		sprintf(buf, "2060 the debug sth is %x,%x,%d", remapptr, ptr,i);
+		sprintf_s(buf, "2060 the debug sth is %llx,%x,%d", remapptr, ptr,i);
 		OutputDebugStringA(buf);
 		streamInstance->write(hasconstbufer);
 	}
