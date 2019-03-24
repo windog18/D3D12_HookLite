@@ -202,6 +202,9 @@ public:
 	}
 
 	void SetFrameTagForAll(CommandEnum Tag);
+
+	void SetEndFileForAll();
+
 	void WriteAllBufferToResult();
 
 	void ResetRecordState();

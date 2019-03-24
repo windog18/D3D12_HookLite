@@ -47,19 +47,27 @@ long __stdcall hkPresent12(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT F
 				Log(ss.str().c_str());
 				ss << sd.Windowed;
 				Log(ss.str().c_str());
+				HookWindowProc(sd.OutputWindow);
 			}
-			HookWindowProc(sd.OutputWindow);
-		}
+			}
 
 
 
 	}
+
+
+	static bool OtherInit = true;
 
 	RecordSpecialStart
 
 	auto streaminstance = GetStreamFromThreadID();
 	streaminstance->write(SWAPCHAIN_PRESENT);
 	streaminstance->beginRecordPresent = true;
+	if (OtherInit == true)
+	{
+		TempCluster::GetInstance()->SetEndFileForAll();
+		OtherInit = false;
+	}
 	
 	RecordSpecialEnd
 

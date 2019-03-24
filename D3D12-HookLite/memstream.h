@@ -67,6 +67,7 @@ private:
 	stringstream nameListCache;
 
 public:
+	bool prepareendfile;
 	std::mutex m_gMutex;
 
 	std::map<ID3D12GraphicsCommandList*, const D3D12_ROOT_SIGNATURE_DESC *> m_DescMap;
