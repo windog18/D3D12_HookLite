@@ -170,6 +170,7 @@ DECLARE_FUNCTIONPTR(long, D3D12CommandListReset, ID3D12GraphicsCommandList *dCom
 	MemStream *streamInstance = GetStreamFromThreadID();
 	streamInstance->write(CommandEnum::CommandList_Reset);
 	streamInstance->write(dCommandList);
+	streamInstance->write(pInitialState);
 	RecordEnd
 
 	return res;
