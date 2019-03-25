@@ -119,7 +119,7 @@ void MemStream::write(CommandEnum enu)
 		{
 			prepareendfile = false;
 			write(CommandEnum::end_File);
-
+			beginRecordPresent = true;
 		}
 	}
 

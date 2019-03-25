@@ -160,7 +160,8 @@ public:
 					ss << " (record present data)";
 					break;
 				case 2:
-					ss << " (stop to write files)";
+					ss << " (stop write files)";
+					break;
 				default:
 					ss << " (unknown state): ";
 					ss << recordState;
@@ -176,7 +177,7 @@ public:
 
 	inline void ToggleRecordingState() {
 		std::lock_guard<std::mutex> lock(m_recordMutex);
-		m_RecordState = (m_RecordState + 1) % 3;
+		m_RecordState = (m_RecordState + 1) % 4;
 
 		std::stringstream ss;
 		ss << "recording state changed: ";
@@ -192,7 +193,8 @@ public:
 			ss << " (stop to write files)";
 			break;
 		case 3:
-
+			ss << " (stop write files)";
+			break;
 		default:
 			ss << " (unknown state): ";
 			ss << m_RecordState;

@@ -377,6 +377,10 @@ const UINT *pSrcDescriptorRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE DescriptorHeaps
 	instancestream->write(NumDestDescriptorRanges);
 	instancestream->write(DescriptorHeapsType);
 
+
+	char buf[256];
+	sprintf_s(buf, "%llx\n", pDestDescriptorRangeStarts[0].ptr);
+	instancestream->nameListCache << buf;
  
 	for (UINT i = 0; i < NumDestDescriptorRanges; i++)
 	{
@@ -476,6 +480,10 @@ D3D12_CPU_DESCRIPTOR_HANDLE SrcDescriptorRangeStart, D3D12_DESCRIPTOR_HEAP_TYPE 
 		
 		instancestream->CopyDesmap[str.dstcpuhandle] = str;
 	}
+
+	char buf[256];
+	sprintf_s(buf, "%llx\n", DestDescriptorRangeStart.ptr);
+	instancestream->nameListCache << buf;
 
 	RecordEnd
 		

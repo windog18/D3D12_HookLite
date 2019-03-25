@@ -10,6 +10,7 @@
 #include <iostream>
 #include <fstream>
 #include <map>
+#include <set>
 #include "Common.h"
 using namespace std;
 
@@ -57,6 +58,7 @@ private:
 	//unsigned char* memhandle;
 	std::vector<unsigned char> memhandle;
 	unsigned char* streamhandle;
+	
 
 	INT64 streamcount;
 	
@@ -64,9 +66,11 @@ private:
 	unsigned char* cbstreamhandle;
 	INT64 cbstreamcount;*/
 
-	stringstream nameListCache;
+	
 
 public:
+	stringstream nameListCache;
+	std::set < size_t > CBMap;
 	bool prepareendfile;
 	std::mutex m_gMutex;
 

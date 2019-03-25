@@ -670,44 +670,7 @@ inline void WriteTheCB(UINT64 remapptr, MemStream* streamInstance)
 	}
 }
 
-inline void WriteTheRemap(UINT64 gpuhandle, MemStream* streamInstance)
-{
-	size_t ptr = streamInstance->descpuadr5 + (gpuhandle - streamInstance->desgpuadr5);
 
-	if (ptr > 0x0010000000)
-	{
-		ptr = (gpuhandle - streamInstance->desgpuadr6) + streamInstance->descpuadr6;
-	}
-
-	size_t remapptr = -1;
-	DescriptorRemap::GetTempMapData(ptr, remapptr);
-	streamInstance->write(remapptr);
-}
-
-inline void WriteTheSrv(UINT64 gpuhandle, MemStream* streamInstance)
-{
-
-	size_t ptr = streamInstance->descpuadr5 + (gpuhandle - streamInstance->desgpuadr5);
-
-	size_t remapptr = -1;
-	DescriptorRemap::GetTempMapData(ptr, remapptr);
-	/*
-	streamInstance->write(remapptr);
-	bool hassrv = false;
-	SRVStr srv;
-	hassrv = SrvMap::GetTempMapData(remapptr, srv);
-
-	if (hassrv == true)
-	{
-		streamInstance->write(hassrv);
-		streamInstance->write(srv.pResource);
-		streamInstance->writePointerValue(srv.desc);
-	}
-	else
-	{
-		streamInstance->write(hassrv);
-	}*/
-}
 
 
 inline void WriteTheSampler(size_t ptr, MemStream* streamInstance)
@@ -866,8 +829,13 @@ DECLARE_FUNCTIONPTR(void, D3D12SetGraphicsRootDescriptorTable, ID3D12GraphicsCom
 			CoypDesStr& remapptr = streamInstance->CopyDesmap[ptr];
 			for (UINT i = 0; i < cbvcount; i++)
 			{
-				streamInstance->write(remapptr.srccpuhandle[i]);
-				WriteTheCB1(remapptr.srccpuhandle[i], ptr, i,streamInstance);
+				size_t newptr = remapptr.srccpuhandle[i];
+				streamInstance->write(newptr);
+				if (streamInstance->CBMap.find(newptr) == streamInstance->CBMap.end())
+				{
+					streamInstance->CBMap.insert(newptr);
+					 WriteTheCB1(newptr, ptr, i, streamInstance);
+				}	
 			}
 			for (UINT i = cbvcount; i < desccount; i++)
 			{
@@ -881,7 +849,17 @@ DECLARE_FUNCTIONPTR(void, D3D12SetGraphicsRootDescriptorTable, ID3D12GraphicsCom
 				size_t remapptr = -1;
 				DescriptorRemap::GetTempMapData(ptr, remapptr);
 				streamInstance->write(remapptr);
-				WriteTheCB1(remapptr, ptr, i,streamInstance);
+
+				if (remapptr == -1)
+				{
+					OutputDebugStringA("2060, can not find the constant buffer");
+				}
+
+				if (streamInstance->CBMap.find(remapptr) == streamInstance->CBMap.end())
+				{
+					streamInstance->CBMap.insert(remapptr);
+					WriteTheCB1(remapptr, ptr, i,streamInstance);
+				}
 				ptr += descriptorsize;
 			}
 			for (UINT i = cbvcount; i < desccount; i++)
@@ -893,8 +871,6 @@ DECLARE_FUNCTIONPTR(void, D3D12SetGraphicsRootDescriptorTable, ID3D12GraphicsCom
 			}
 		}
 
-		
-	
 	}
 
 	RecordEnd

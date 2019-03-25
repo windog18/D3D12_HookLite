@@ -63,6 +63,7 @@ long __stdcall hkPresent12(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT F
 	auto streaminstance = GetStreamFromThreadID();
 	streaminstance->write(SWAPCHAIN_PRESENT);
 	streaminstance->beginRecordPresent = true;
+	streaminstance->CBMap.clear();
 	if (OtherInit == true)
 	{
 		TempCluster::GetInstance()->SetEndFileForAll();
@@ -75,6 +76,7 @@ long __stdcall hkPresent12(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT F
 		TempCluster::GetInstance()->SetFrameTagForAll(CommandEnum::end_File);
 		TempCluster::GetInstance()->WriteAllBufferToResult();
 		TempCluster::GetInstance()->ResetRecordState();
+		TempCluster::GetInstance()->ToggleRecordingState();
 	}
 
 	auto res = oPresent12(pSwapChain, SyncInterval, Flags);
