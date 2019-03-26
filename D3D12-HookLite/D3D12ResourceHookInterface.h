@@ -52,6 +52,11 @@ DECLARE_FUNCTIONPTR(HRESULT, D3D12ResourceMap, ID3D12Resource *dResource, UINT s
  	streaminstance->write(subresource);
  	streaminstance->writePointerValue(pReadRange);
 	RecordEnd
+	D3D12_RESOURCE_DESC desc = dResource->GetDesc();
+	if (desc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
+	{
+		ResourceVectorData::addmapres(dResource, desc.Width, *ppData);
+	}
 	return result;
 }
 
@@ -60,11 +65,11 @@ DECLARE_FUNCTIONPTR(void, D3D12ResourceUnmap, ID3D12Resource *dResource, UINT su
 	LOG_ONCE(__FUNCTION__);
 
 	oD3D12ResourceUnmap(dResource, subresource, pWrittenRange);
-	
+	ResourceVectorData::addunmapres(dResource);
 	RecordStart
 	MemStream* streaminstance = GetStreamFromThreadID();
 
-	D3D12_RESOURCE_DESC desc = dResource->GetDesc();
+	
 
 	streaminstance->write(Resource_Unmap);
 	streaminstance->write(dResource);
@@ -72,6 +77,11 @@ DECLARE_FUNCTIONPTR(void, D3D12ResourceUnmap, ID3D12Resource *dResource, UINT su
 	streaminstance->writePointerValue(pWrittenRange);
 
 	RecordEnd
+	D3D12_RESOURCE_DESC desc = dResource->GetDesc();
+	if (desc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
+	{
+		ResourceVectorData::addunmapres(dResource);
+	}
 }
 
 /*

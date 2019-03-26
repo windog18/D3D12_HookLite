@@ -119,20 +119,19 @@ void MemStream::write(CommandEnum enu)
 		{
 			prepareendfile = false;
 			write(CommandEnum::end_File);
-			beginRecordPresent = true;
 		}
 	}
 
 	int datasize = sizeof(CommandEnum);
 	WriteToMemStream(&enu, datasize);
 	
-	{
+	/*{
 		std::lock_guard<std::mutex> locker(m_gMutex);
 		std::string commandName = enum_to_string(enu);
 		commandName = commandName + "\n";
 
 		nameListCache << commandName;
-	}
+	}*/
 
 	
 }

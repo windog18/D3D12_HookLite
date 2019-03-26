@@ -148,7 +148,7 @@ public:
 	
 
 	inline void WriteToMemStream(const void *src, size_t tSize) {
-		std::lock_guard<std::mutex> locker(m_gMutex);
+//		std::lock_guard<std::mutex> locker(m_gMutex);
 		if (tSize + streamcount >= memhandle.size()) {
 			size_t increSize = memhandle.size() * 2;
 			if (tSize > memhandle.size()) {

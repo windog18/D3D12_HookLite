@@ -549,16 +549,9 @@ DECLARE_FUNCTIONPTR(void, D3D12SetGraphicsRootSignature, ID3D12GraphicsCommandLi
 
 	RecordStart
 		MemStream* streaminstance = GetStreamFromThreadID();
-		if (streaminstance->beginRecordPresent)
-		{
-		
-			streaminstance->write(CommandList_SetGraphicsRootSignature);
-			streaminstance->write(dCommandList);
-			streaminstance->write(pRootSignature);
-			const D3D12_ROOT_SIGNATURE_DESC * pdesc;
-			bool hasdesc = RootSignMap::GetTempMapData(pRootSignature, pdesc);
-			streaminstance->m_DescMap[dCommandList] = pdesc;
-		}
+		streaminstance->write(CommandList_SetGraphicsRootSignature);
+		streaminstance->write(dCommandList);
+		streaminstance->write(pRootSignature);
 	RecordEnd
 }
 
@@ -800,7 +793,8 @@ DECLARE_FUNCTIONPTR(void, D3D12SetGraphicsRootDescriptorTable, ID3D12GraphicsCom
 
 	
 	
-	if ( streamInstance->beginRecordPresent )
+/*
+	if ( 0 )
 	{
 
 		size_t ptr = streamInstance->descpuadr5 + (BaseDescriptor.ptr - streamInstance->desgpuadr5);
@@ -824,7 +818,7 @@ DECLARE_FUNCTIONPTR(void, D3D12SetGraphicsRootDescriptorTable, ID3D12GraphicsCom
 		UINT descriptorsize = pdevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 
-		if (streamInstance->CopyDesmap.find(ptr) != streamInstance->CopyDesmap.end())
+		/ *if (streamInstance->CopyDesmap.find(ptr) != streamInstance->CopyDesmap.end())
 		{
 			CoypDesStr& remapptr = streamInstance->CopyDesmap[ptr];
 			for (UINT i = 0; i < cbvcount; i++)
@@ -843,35 +837,39 @@ DECLARE_FUNCTIONPTR(void, D3D12SetGraphicsRootDescriptorTable, ID3D12GraphicsCom
 			}
 		}
 		else
+		{* /
+		streamInstance->write(cbvcount);
+		streamInstance->write(desccount);
+		for (UINT i = 0; i < cbvcount; i++)
 		{
-			for (UINT i = 0; i < cbvcount; i++)
-			{
-				size_t remapptr = -1;
-				DescriptorRemap::GetTempMapData(ptr, remapptr);
-				streamInstance->write(remapptr);
+			size_t remapptr = -1;
+			DescriptorRemap::GetTempMapData(ptr, remapptr);
+			streamInstance->write(remapptr);
 
-				if (remapptr == -1)
-				{
-					OutputDebugStringA("2060, can not find the constant buffer");
-				}
-
-				if (streamInstance->CBMap.find(remapptr) == streamInstance->CBMap.end())
-				{
-					streamInstance->CBMap.insert(remapptr);
-					WriteTheCB1(remapptr, ptr, i,streamInstance);
-				}
-				ptr += descriptorsize;
-			}
-			for (UINT i = cbvcount; i < desccount; i++)
+			if (remapptr != -1)
 			{
-				size_t remapptr = -1;
-				DescriptorRemap::GetTempMapData(ptr, remapptr);
-				streamInstance->write(remapptr);
-				ptr += descriptorsize;
+					
+				//if (streamInstance->CBMap.find(remapptr) == streamInstance->CBMap.end())
+				//{
+					//streamInstance->CBMap.insert(remapptr);
+					WriteTheCB1(remapptr, ptr, i, streamInstance);
+				//}
 			}
+
+				
+			ptr += descriptorsize;
 		}
+		for (UINT i = cbvcount; i < desccount; i++)
+		{
+			size_t remapptr = -1;
+			DescriptorRemap::GetTempMapData(ptr, remapptr);
+			streamInstance->write(remapptr);
+			ptr += descriptorsize;
+		}
+		
 
 	}
+*/
 
 	RecordEnd
 

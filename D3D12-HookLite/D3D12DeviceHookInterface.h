@@ -189,14 +189,14 @@ DECLARE_FUNCTIONPTR(void, D3D12CreateConstantBufferView, ID3D12Device *dDevice, 
 	LOG_ONCE(__FUNCTION__);
 	oD3D12CreateConstantBufferView(dDevice, pDesc, DestDescriptor);
 
-	//RecordStart
+	
 
 
 	CBResstr str;
 	bool findres = ResourceVectorData::FindCst(pDesc->BufferLocation, pDesc->SizeInBytes, str);
+	ConstantBufferData Cst;
 	if ( findres == true )
 	{
-		ConstantBufferData Cst;
 		Cst.pres = str.pres;
 		Cst.offset = pDesc->BufferLocation - str.gpu;
 		Cst.bufsize = pDesc->SizeInBytes;
@@ -204,17 +204,20 @@ DECLARE_FUNCTIONPTR(void, D3D12CreateConstantBufferView, ID3D12Device *dDevice, 
 	}
 	
 
-/*
+	RecordStart
 
 	MemStream* streaminstance = GetStreamFromThreadID();
 	streaminstance->write(Device_CreateConstantBufferView);
 	streaminstance->write(dDevice);
+	streaminstance->write(findres);
+	if (findres)
+	{
+		streaminstance->write(Cst.pres);
+	}
 	streaminstance->writePointerValue(pDesc);
 	streaminstance->write(DestDescriptor);
-	*/
 
-	
-	//RecordEnd
+	RecordEnd
 
 	return;
 }
@@ -330,6 +333,8 @@ DECLARE_FUNCTIONPTR(void, D3D12CreateSampler, ID3D12Device *dDevice, const D3D12
 	SamplerMap::SetTempMapData(ptr, desc);*/
 }
 
+static std::mutex m_sDesMutex;
+
 
 DECLARE_FUNCTIONPTR(void, D3D12CopyDescriptors, ID3D12Device *dDevice, UINT NumDestDescriptorRanges, const D3D12_CPU_DESCRIPTOR_HANDLE *pDestDescriptorRangeStarts,
 const UINT *pDestDescriptorRangeSizes, UINT NumSrcDescriptorRanges, const D3D12_CPU_DESCRIPTOR_HANDLE *pSrcDescriptorRangeStarts,
@@ -338,103 +343,81 @@ const UINT *pSrcDescriptorRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE DescriptorHeaps
 
 	LOG_ONCE(__FUNCTION__);
 
-	size_t deshandle = pDestDescriptorRangeStarts[0].ptr;
-	UINT descriptorsize = dDevice->GetDescriptorHandleIncrementSize(DescriptorHeapsType);
+	
 
+	RecordStart
+
+	UINT descriptorsize = dDevice->GetDescriptorHandleIncrementSize(DescriptorHeapsType);
+	size_t deshandle = pDestDescriptorRangeStarts[0].ptr;
+	UINT* desmap;
+	size_t offset;
 	MemStream* instancestream = GetStreamFromThreadID();
-	//copy static descriptor heap into map
-	//if (deshandle < 0xc50000 || !instancestream->beginRecordPresent)
+	if (instancestream->beginRecordPresent == false)
 	{
+		{
+			std::lock_guard<std::mutex> lock(m_sDesMutex);
+			if (deshandle % 32 == 5)
+			{
+				desmap = ResourceVectorData::getHandleMap5();
+				offset = (deshandle - 5) >> 5;
+			}
+			else
+			{
+				desmap = ResourceVectorData::getHandleMap6();
+				offset = (deshandle - 6) >> 5;
+			}
+		}
 		for (UINT i = 0; i < NumSrcDescriptorRanges; i++)
 		{
-			size_t srchandle = pSrcDescriptorRangeStarts[i].ptr;
-			if (pSrcDescriptorRangeSizes == NULL)
-			{
-				DescriptorRemap::SetTempMapData(deshandle, srchandle);
-				srchandle += descriptorsize;
-				deshandle += descriptorsize;
+			if (pSrcDescriptorRangeSizes == NULL) {
+				desmap[offset++] = pSrcDescriptorRangeStarts[i].ptr;
 			}
 			else
 			{
 				for (UINT j = 0; j < pSrcDescriptorRangeSizes[i]; j++)
 				{
-					DescriptorRemap::SetTempMapData(deshandle, srchandle);
-					srchandle += descriptorsize;
-					deshandle += descriptorsize;
+					desmap[offset++] = pSrcDescriptorRangeStarts[i].ptr + j * 0x20;
 				}
 			}
 		}
 	}
+	else
+	{
+		instancestream->write(Device_CopyDescriptors);
+		instancestream->write(dDevice);
+		instancestream->write(NumDestDescriptorRanges);
+		instancestream->write(DescriptorHeapsType);
+		for (UINT i = 0; i < NumDestDescriptorRanges; i++)
+		{
+			instancestream->write(pDestDescriptorRangeStarts[i]);
+			instancestream->write(pDestDescriptorRangeSizes[i]);
+		}
+
+		instancestream->write(NumSrcDescriptorRanges);
+
+		for (UINT i = 0; i < NumSrcDescriptorRanges; i++) {
+			instancestream->write(pSrcDescriptorRangeStarts[i]);
+			if (pSrcDescriptorRangeSizes == NULL) {
+				UINT oneVal = 1;
+				instancestream->write(oneVal);
+			}
+			else {
+				instancestream->write(pSrcDescriptorRangeSizes[i]);
+			}
+		}
+	}
+
+	RecordEnd
 
 	oD3D12CopyDescriptors(dDevice, NumDestDescriptorRanges, pDestDescriptorRangeStarts, pDestDescriptorRangeSizes,
 		NumSrcDescriptorRanges, pSrcDescriptorRangeStarts, pSrcDescriptorRangeSizes, DescriptorHeapsType);
 
 
-	RecordStart
 	
-	instancestream->write(Device_CopyDescriptors);
-	instancestream->write(dDevice);
-	instancestream->write(NumDestDescriptorRanges);
-	instancestream->write(DescriptorHeapsType);
-
-
-	char buf[256];
-	sprintf_s(buf, "%llx\n", pDestDescriptorRangeStarts[0].ptr);
-	instancestream->nameListCache << buf;
- 
-	for (UINT i = 0; i < NumDestDescriptorRanges; i++)
-	{
-		instancestream->write(pDestDescriptorRangeStarts[i]);
-		instancestream->write(pDestDescriptorRangeSizes[i]);
-	}
-
-	instancestream->write(NumSrcDescriptorRanges);
-
-	for (UINT i = 0; i < NumSrcDescriptorRanges; i++){
-		instancestream->write(pSrcDescriptorRangeStarts[i]);
-		if (pSrcDescriptorRangeSizes == NULL) {
-			UINT oneVal = 1;
-			instancestream->write(oneVal);
-		}
-		else {
-			instancestream->write(pSrcDescriptorRangeSizes[i]);
-		}
-	}
-	
-	/*if (instancestream->beginRecordPresent)
-	{
-		std::vector<size_t> srcDesarray;
-		for (UINT i = 0; i < NumSrcDescriptorRanges; i++)
-		{
-			size_t srchandle = pSrcDescriptorRangeStarts[i].ptr;
-			if (pSrcDescriptorRangeSizes == NULL)
-			{
-				srcDesarray.push_back(srchandle);
-				srchandle += descriptorsize;
-			}
-			else
-			{
-				for (UINT j = 0; j < pSrcDescriptorRangeSizes[i]; j++)
-				{
-					srcDesarray.push_back(srchandle);
-					srchandle += descriptorsize;
-				}
-			}
-		}
-
-		CoypDesStr str;
-
-		str.numsrcdes = srcDesarray.size();
-		str.srccpuhandle = new size_t[str.numsrcdes];
-		memcpy(str.srccpuhandle, &srcDesarray[0], sizeof(size_t)*str.numsrcdes);
-		str.dstcpuhandle = pDestDescriptorRangeStarts[0].ptr;
-		
-		instancestream->CopyDesmap[str.dstcpuhandle] = str;
-	}*/
-	//
- 	RecordEnd
 
 }
+
+
 
 DECLARE_FUNCTIONPTR(void, D3D12CopyDescriptorsSimple, ID3D12Device *dDevice, UINT NumDescriptors, D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptorRangeStart,
 D3D12_CPU_DESCRIPTOR_HANDLE SrcDescriptorRangeStart, D3D12_DESCRIPTOR_HEAP_TYPE DescriptorHeapsType) //24
@@ -443,50 +426,57 @@ D3D12_CPU_DESCRIPTOR_HANDLE SrcDescriptorRangeStart, D3D12_DESCRIPTOR_HEAP_TYPE 
 
 	//copy static descriptor heap into map
 	UINT descriptorsize = dDevice->GetDescriptorHandleIncrementSize(DescriptorHeapsType);
+
+
+	 
+
+	RecordStart		
 	MemStream* instancestream = GetStreamFromThreadID();
-	if (DestDescriptorRangeStart.ptr < 0xc50000 || !instancestream->beginRecordPresent)
-	{
-		
-		for (size_t i = 0; i < NumDescriptors; i++)
-		{
-			size_t deshandle = DestDescriptorRangeStart.ptr + i * descriptorsize;
-			size_t srchandle = SrcDescriptorRangeStart.ptr + i * descriptorsize;
 
-			DescriptorRemap::SetTempMapData(deshandle, srchandle);
-		}
-	}
-	 oD3D12CopyDescriptorsSimple(dDevice, NumDescriptors, DestDescriptorRangeStart, SrcDescriptorRangeStart, DescriptorHeapsType);
 
-	RecordStart
+	UINT descriptorsize = dDevice->GetDescriptorHandleIncrementSize(DescriptorHeapsType);
+	size_t deshandle = DestDescriptorRangeStart.ptr;
+	UINT* desmap;
+	size_t offset;
 	
-	instancestream->write(Device_CopyDescriptorsSimple);
-	instancestream->write(dDevice);
-	instancestream->write(NumDescriptors);
-	instancestream->write(DestDescriptorRangeStart);
-	instancestream->write(SrcDescriptorRangeStart);
-	instancestream->write(DescriptorHeapsType);
-
-	if (instancestream->beginRecordPresent)
+	if (instancestream->beginRecordPresent == false)
 	{
-		CoypDesStr str;
-		str.numsrcdes = NumDescriptors;
-		str.srccpuhandle = new size_t[str.numsrcdes];
-
-		for (UINT i = 0; i < str.numsrcdes; i++)
 		{
-			str.srccpuhandle[i] = SrcDescriptorRangeStart.ptr + i* descriptorsize;
+			std::lock_guard<std::mutex> lock(m_sDesMutex);
+			if (deshandle % 32 == 5)
+			{
+				desmap = ResourceVectorData::getHandleMap5();
+				offset = (deshandle - 5) >> 5;
+			}
+			else
+			{
+				desmap = ResourceVectorData::getHandleMap6();
+				offset = (deshandle - 6) >> 5;
+			}
 		}
-		str.dstcpuhandle = DestDescriptorRangeStart.ptr;
-		
-		instancestream->CopyDesmap[str.dstcpuhandle] = str;
+
+		if (offset < 0x500000)
+		{
+			for (UINT i = 0; i < NumDescriptors; i++)
+			{
+				desmap[offset++] = SrcDescriptorRangeStart.ptr + i * 0x20;
+			}
+		}
 	}
+	else
+	{
+		instancestream->write(Device_CopyDescriptorsSimple);
 
-	char buf[256];
-	sprintf_s(buf, "%llx\n", DestDescriptorRangeStart.ptr);
-	instancestream->nameListCache << buf;
-
+		instancestream->write(dDevice);
+		instancestream->write(NumDescriptors);
+		instancestream->write(DestDescriptorRangeStart);
+		instancestream->write(SrcDescriptorRangeStart);
+		instancestream->write(DescriptorHeapsType);
+	}
+	
 	RecordEnd
-		
+
+	oD3D12CopyDescriptorsSimple(dDevice, NumDescriptors, DestDescriptorRangeStart, SrcDescriptorRangeStart, DescriptorHeapsType);
 }
 
 DECLARE_FUNCTIONPTR(D3D12_RESOURCE_ALLOCATION_INFO, D3D12GetResourceAllocationInfo, ID3D12Device *dDevice, UINT visibleMask,

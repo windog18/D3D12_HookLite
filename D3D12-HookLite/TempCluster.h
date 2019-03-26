@@ -77,6 +77,7 @@ public:
 	static void Add(CBResstr ptr) {
 		std::lock_guard<std::mutex> lock(m_sMutex);
 		m_sTempVector.push_back(ptr);
+		
 	}
 
 	
@@ -90,6 +91,7 @@ public:
 			{
 				ptr = str;
 				hasvaule = true;
+				cstreset.insert(str.pres);
 				break;
 			}
 		}
@@ -100,10 +102,70 @@ public:
 		std::lock_guard<std::mutex> lock(m_sMutex);
 		m_sTempVector.clear();
 	}
+
+	struct bufstr
+	{
+		UINT64 bufsize;
+		void* pdata;
+	};
+
+	static void addmapres(ID3D12Resource* pres, UINT64 bufsize, void* pdata) {
+		std::lock_guard<std::mutex> lock(m_sMutex2);
+		bufstr bstr;
+		bstr.bufsize = bufsize;
+		bstr.pdata = pdata;
+		unmapres.insert(std::make_pair(pres,bstr));
+	}
+
+	static void addunmapres(ID3D12Resource* pres) {
+		std::lock_guard<std::mutex> lock(m_sMutex2);
+		unmapres.erase(pres);
+	}
+
+	static size_t getCBResCount() {
+		std::lock_guard<std::mutex> lock(m_sMutex);
+		return cstreset.size();
+	}
+
+	static size_t getunmapresCount() {
+		std::lock_guard<std::mutex> lock(m_sMutex2);
+		return unmapres.size();
+	}
+
+	static UINT WriteStream(MemStream* pstream);
+	static void WriteDesMap(MemStream* pstream);
+
+	static UINT* getHandleMap5()
+	{
+		if (desmap5 == NULL)
+		{
+			desmap5 = new UINT[500000];
+			memset(desmap5, 0, sizeof(UINT) * 500000);
+		}
+		return desmap5;
+	}
+
+	static UINT* getHandleMap6()
+	{
+		if (desmap6 == NULL)
+		{
+			desmap6 = new UINT[500000];
+			memset(desmap6, 0, sizeof(UINT) * 500000);
+		}
+		return desmap6;
+	}
+	
 private:
 	static std::vector<CBResstr>  m_sTempVector;
-
+	static std::set<ID3D12Resource*> cstreset;
 	static std::mutex m_sMutex;
+
+	static std::map<ID3D12Resource*, bufstr> unmapres;
+	static std::mutex m_sMutex2;
+
+	
+	static UINT* desmap5;
+	static UINT* desmap6;
 };
 
 

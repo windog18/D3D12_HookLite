@@ -162,6 +162,8 @@ enum CommandEnum
 	DesHeap_GetGPUDescriptorHandleForHeapStart,
 
 	SWAPCHAIN_PRESENT,
+		copy_cstbuf,
+		copy_cstmap,
 		last_frame,
 		end_frame,
 		end_File,
