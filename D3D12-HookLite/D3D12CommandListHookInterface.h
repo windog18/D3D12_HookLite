@@ -533,7 +533,12 @@ DECLARE_FUNCTIONPTR(void, D3D12SetComputeRootSignature, ID3D12GraphicsCommandLis
 		streamInstance->write(dCommandList);
 		streamInstance->write(pRootSignature);
 		
-	
+		if (streamInstance->beginRecordPresent)
+		{
+			const D3D12_ROOT_SIGNATURE_DESC * pdesc;
+			bool hasdesc = RootSignMap::GetTempMapData(pRootSignature, pdesc);
+			streamInstance->m_DescMap[dCommandList] = pdesc;
+		}
 	
 	RecordEnd
 
@@ -573,7 +578,7 @@ DECLARE_FUNCTIONPTR(void, D3D12SetComputeRootDescriptorTable, ID3D12GraphicsComm
 	return;
 }
 
-inline void WriteTheCB1(UINT64 remapptr, UINT ptr,UINT i, MemStream* streamInstance)
+inline void WriteTheCB(UINT64 remapptr, UINT ptr,UINT i, MemStream* streamInstance)
 {
 	
 	bool hasconstbufer = false;
@@ -619,72 +624,6 @@ inline void WriteTheCB1(UINT64 remapptr, UINT ptr,UINT i, MemStream* streamInsta
 	}
 }
 
-inline void WriteTheCB(UINT64 remapptr, MemStream* streamInstance)
-{
-
-	bool hasconstbufer = false;
-	ConstantBufferData cst;
-	hasconstbufer = CBBufMap::GetTempMapData(remapptr, cst);
-
-	if (hasconstbufer == true)
-	{
-		streamInstance->write(hasconstbufer);
-		ID3D12Resource* pres = cst.pres;
-		streamInstance->write(cst.pres);
-		streamInstance->write(cst.offset);
-		streamInstance->write(cst.bufsize);
-
-		UINT8* pdata;
-		D3D12_RANGE range;
-		range.Begin = cst.offset;
-		range.End = cst.offset + cst.bufsize;
-
-		HRESULT hr = oD3D12ResourceMap(pres, 0, &range, (void**)&pdata);
-		if (hr == S_OK)
-		{
-			bool mapsuccess = true;
-			streamInstance->write(mapsuccess);
-			D3D12_RESOURCE_DESC desc = pres->GetDesc();
-			UINT8* pdstdata = new UINT8[cst.bufsize];
-			streamInstance->write(pdata + cst.offset, cst.bufsize);
-		}
-		else
-		{
-			bool mapsuccess = false;
-			streamInstance->write(mapsuccess);
-			streamInstance->write(pres);
-		}
-		oD3D12ResourceUnmap(pres, 0, &range);
-	}
-	else
-	{
-		OutputDebugStringA("2060, CB  can not find sth important");
-		streamInstance->write(hasconstbufer);
-	}
-}
-
-
-
-
-inline void WriteTheSampler(size_t ptr, MemStream* streamInstance)
-{
-
-	size_t remapptr = -1;
-	DescriptorRemap::GetTempMapData(ptr, remapptr);
-
-	bool hassample = false;
-	D3D12_SAMPLER_DESC* pdesc;
-	hassample = SamplerMap::GetTempMapData(remapptr, pdesc);
-	if (hassample)
-	{
-		streamInstance->write(hassample);
-		streamInstance->write(*pdesc);
-	}
-	else
-	{
-		streamInstance->write(hassample);
-	}
-}
 
 std::map<const D3D12_ROOT_SIGNATURE_DESC *, UINT*> descmap;
 UINT getparameterCount(const D3D12_ROOT_PARAMETER& parameter)
@@ -793,17 +732,18 @@ DECLARE_FUNCTIONPTR(void, D3D12SetGraphicsRootDescriptorTable, ID3D12GraphicsCom
 
 	
 	
-/*
-	if ( 0 )
-	{
 
-		size_t ptr = streamInstance->descpuadr5 + (BaseDescriptor.ptr - streamInstance->desgpuadr5);
+	if (streamInstance->beginRecordPresent)
+	{
+		bool cst = true;
+		size_t ptr = (BaseDescriptor.ptr - streamInstance->desgpuadr5);
 
 		if (ptr > 0x0010000000)
 		{
-			ptr = (BaseDescriptor.ptr - streamInstance->desgpuadr6) + streamInstance->descpuadr6;
+			ptr = (BaseDescriptor.ptr - streamInstance->desgpuadr6);
+			cst = false;
 		}
-
+		UINT offset = ptr >> 5;
 
 		const D3D12_ROOT_SIGNATURE_DESC * pdesc = streamInstance->m_DescMap[dCommandList];
 		UINT* cbvarray = getCBVparadesc(pdesc);
@@ -811,66 +751,32 @@ DECLARE_FUNCTIONPTR(void, D3D12SetGraphicsRootDescriptorTable, ID3D12GraphicsCom
 
 		UINT* descarray = getParadesc(pdesc);
 		UINT desccount = descarray[RootParameterIndex];
+		size_t desdata[64];
 
-		ID3D12Device* pdevice;
-		IID riid = __uuidof(ID3D12Device);
-		dCommandList->GetDevice(riid, (void**)&pdevice);
-		UINT descriptorsize = pdevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-
-
-		/ *if (streamInstance->CopyDesmap.find(ptr) != streamInstance->CopyDesmap.end())
 		{
-			CoypDesStr& remapptr = streamInstance->CopyDesmap[ptr];
-			for (UINT i = 0; i < cbvcount; i++)
+			std::lock_guard<std::mutex> lock(m_sDesMutex);
+			UINT* desd;
+			if (cst)
 			{
-				size_t newptr = remapptr.srccpuhandle[i];
-				streamInstance->write(newptr);
-				if (streamInstance->CBMap.find(newptr) == streamInstance->CBMap.end())
-				{
-					streamInstance->CBMap.insert(newptr);
-					 WriteTheCB1(newptr, ptr, i, streamInstance);
-				}	
+				desd = ResourceVectorData::desmap5;
 			}
-			for (UINT i = cbvcount; i < desccount; i++)
+			else
 			{
-				streamInstance->write(remapptr.srccpuhandle[i]);
+				desd = ResourceVectorData::desmap6;
 			}
+			memcpy(desdata, desd, sizeof(size_t)*cbvcount);
 		}
-		else
-		{* /
-		streamInstance->write(cbvcount);
-		streamInstance->write(desccount);
+
 		for (UINT i = 0; i < cbvcount; i++)
 		{
-			size_t remapptr = -1;
-			DescriptorRemap::GetTempMapData(ptr, remapptr);
-			streamInstance->write(remapptr);
-
-			if (remapptr != -1)
+			size_t newptr = desdata[i];
+			if (streamInstance->CBMap.find(newptr) == streamInstance->CBMap.end())
 			{
-					
-				//if (streamInstance->CBMap.find(remapptr) == streamInstance->CBMap.end())
-				//{
-					//streamInstance->CBMap.insert(remapptr);
-					WriteTheCB1(remapptr, ptr, i, streamInstance);
-				//}
+				streamInstance->CBMap.insert(newptr);
+				WriteTheCB(newptr, ptr, i, streamInstance);
 			}
-
-				
-			ptr += descriptorsize;
 		}
-		for (UINT i = cbvcount; i < desccount; i++)
-		{
-			size_t remapptr = -1;
-			DescriptorRemap::GetTempMapData(ptr, remapptr);
-			streamInstance->write(remapptr);
-			ptr += descriptorsize;
-		}
-		
-
 	}
-*/
-
 	RecordEnd
 
 }

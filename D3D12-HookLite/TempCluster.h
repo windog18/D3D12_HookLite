@@ -162,7 +162,7 @@ private:
 
 	static std::map<ID3D12Resource*, bufstr> unmapres;
 	static std::mutex m_sMutex2;
-
+public:
 	
 	static UINT* desmap5;
 	static UINT* desmap6;

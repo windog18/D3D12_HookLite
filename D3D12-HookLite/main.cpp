@@ -76,8 +76,8 @@ long __stdcall hkPresent12(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT F
 		OtherInit = false;
 	}
 
-	
-	ResourceVectorData::WriteStream(streaminstance);
+	//streaminstance->CBMap.clear();
+	//ResourceVectorData::WriteStream(streaminstance);
 	
 	RecordSpecialEnd
 
