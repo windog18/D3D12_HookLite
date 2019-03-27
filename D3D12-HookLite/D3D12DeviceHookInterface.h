@@ -141,13 +141,14 @@ DECLARE_FUNCTIONPTR(long, D3D12CreateDescriptorHeap, ID3D12Device *dDevice, cons
 
 	if (cpuhandle.ptr % 32 == 5)
 	{
-		streaminstance->descpuadr5 = cpuhandle.ptr;
-		streaminstance->desgpuadr5 = gpuhandle.ptr;
+		desgpuadr5 = gpuhandle.ptr;
+		descpuadr5 = cpuhandle.ptr;
+		
 	}
 	else if (cpuhandle.ptr % 32 == 6)
 	{
-		streaminstance->descpuadr6 = cpuhandle.ptr;
-		streaminstance->desgpuadr6 = gpuhandle.ptr;
+		desgpuadr6 = gpuhandle.ptr;
+		descpuadr6 = cpuhandle.ptr;
 	}
 
 	RecordEnd
@@ -352,7 +353,6 @@ const UINT *pSrcDescriptorRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE DescriptorHeaps
 	UINT* desmap;
 	size_t offset;
 	MemStream* instancestream = GetStreamFromThreadID();
-	if (instancestream->beginRecordPresent == false)
 	{
 		{
 			std::lock_guard<std::mutex> lock(m_sDesMutex);
@@ -381,7 +381,7 @@ const UINT *pSrcDescriptorRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE DescriptorHeaps
 			}
 		}
 	}
-	else
+	if (instancestream->beginRecordPresent == true)
 	{
 		instancestream->write(Device_CopyDescriptors);
 		instancestream->write(dDevice);
@@ -439,7 +439,6 @@ D3D12_CPU_DESCRIPTOR_HANDLE SrcDescriptorRangeStart, D3D12_DESCRIPTOR_HEAP_TYPE 
 	UINT* desmap;
 	size_t offset;
 	
-	if (instancestream->beginRecordPresent == false)
 	{
 		{
 			std::lock_guard<std::mutex> lock(m_sDesMutex);
@@ -463,7 +462,7 @@ D3D12_CPU_DESCRIPTOR_HANDLE SrcDescriptorRangeStart, D3D12_DESCRIPTOR_HEAP_TYPE 
 			}
 		}
 	}
-	else
+	if (instancestream->beginRecordPresent == true)
 	{
 		instancestream->write(Device_CopyDescriptorsSimple);
 

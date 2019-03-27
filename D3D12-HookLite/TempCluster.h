@@ -163,12 +163,16 @@ private:
 	static std::map<ID3D12Resource*, bufstr> unmapres;
 	static std::mutex m_sMutex2;
 public:
-	
 	static UINT* desmap5;
 	static UINT* desmap6;
+	
 };
 
+static UINT64 desgpuadr5;
+static size_t descpuadr5;
 
+static UINT64 desgpuadr6;
+static size_t descpuadr6;
 
 
 

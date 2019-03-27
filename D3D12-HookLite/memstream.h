@@ -83,11 +83,7 @@ public:
 	std::map<size_t, CoypDesStr> CopyDesmap;
 	bool beginRecordPresent;
 
-	UINT64 desgpuadr5;
-	size_t descpuadr5;
 
-	UINT64 desgpuadr6;
-	size_t descpuadr6;
 
 public:
 	MemStream();

@@ -533,12 +533,7 @@ DECLARE_FUNCTIONPTR(void, D3D12SetComputeRootSignature, ID3D12GraphicsCommandLis
 		streamInstance->write(dCommandList);
 		streamInstance->write(pRootSignature);
 		
-		if (streamInstance->beginRecordPresent)
-		{
-			const D3D12_ROOT_SIGNATURE_DESC * pdesc;
-			bool hasdesc = RootSignMap::GetTempMapData(pRootSignature, pdesc);
-			streamInstance->m_DescMap[dCommandList] = pdesc;
-		}
+		
 	
 	RecordEnd
 
@@ -557,6 +552,12 @@ DECLARE_FUNCTIONPTR(void, D3D12SetGraphicsRootSignature, ID3D12GraphicsCommandLi
 		streaminstance->write(CommandList_SetGraphicsRootSignature);
 		streaminstance->write(dCommandList);
 		streaminstance->write(pRootSignature);
+		//if (streaminstance->beginRecordPresent)
+		{
+			const D3D12_ROOT_SIGNATURE_DESC * pdesc;
+			bool hasdesc = RootSignMap::GetTempMapData(pRootSignature, pdesc);
+			streaminstance->m_DescMap[dCommandList] = pdesc;
+		}
 	RecordEnd
 }
 
@@ -736,23 +737,27 @@ DECLARE_FUNCTIONPTR(void, D3D12SetGraphicsRootDescriptorTable, ID3D12GraphicsCom
 	if (streamInstance->beginRecordPresent)
 	{
 		bool cst = true;
-		size_t ptr = (BaseDescriptor.ptr - streamInstance->desgpuadr5);
+		size_t ptr = (BaseDescriptor.ptr - desgpuadr5);
 
 		if (ptr > 0x0010000000)
 		{
-			ptr = (BaseDescriptor.ptr - streamInstance->desgpuadr6);
+			ptr = (BaseDescriptor.ptr - desgpuadr6);
 			cst = false;
 		}
 		UINT offset = ptr >> 5;
 
 		const D3D12_ROOT_SIGNATURE_DESC * pdesc = streamInstance->m_DescMap[dCommandList];
+
+		
 		UINT* cbvarray = getCBVparadesc(pdesc);
 		UINT cbvcount = cbvarray[RootParameterIndex];
 
 		UINT* descarray = getParadesc(pdesc);
 		UINT desccount = descarray[RootParameterIndex];
-		size_t desdata[64];
-
+		UINT desdata[64];
+		
+		
+		memset(desdata, 0, sizeof(UINT)*cbvcount);
 		{
 			std::lock_guard<std::mutex> lock(m_sDesMutex);
 			UINT* desd;
@@ -764,12 +769,14 @@ DECLARE_FUNCTIONPTR(void, D3D12SetGraphicsRootDescriptorTable, ID3D12GraphicsCom
 			{
 				desd = ResourceVectorData::desmap6;
 			}
-			memcpy(desdata, desd, sizeof(size_t)*cbvcount);
+			desd = desd + offset;
+			memcpy(desdata, desd, sizeof(UINT)*cbvcount);
 		}
 
 		for (UINT i = 0; i < cbvcount; i++)
 		{
 			size_t newptr = desdata[i];
+			streamInstance->write(newptr);
 			if (streamInstance->CBMap.find(newptr) == streamInstance->CBMap.end())
 			{
 				streamInstance->CBMap.insert(newptr);

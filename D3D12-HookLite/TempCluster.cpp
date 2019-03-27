@@ -25,6 +25,7 @@ UINT* ResourceVectorData::desmap5 = NULL;
 UINT* ResourceVectorData::desmap6 = NULL;
 
 
+
 TempCluster * TempCluster::m_sSingleton = nullptr;
 
 inline std::string narrow(std::wstring const& text)
