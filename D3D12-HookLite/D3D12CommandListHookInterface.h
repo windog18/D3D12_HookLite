@@ -757,7 +757,7 @@ DECLARE_FUNCTIONPTR(void, D3D12SetGraphicsRootDescriptorTable, ID3D12GraphicsCom
 		UINT desdata[64];
 		
 		
-		memset(desdata, 0, sizeof(UINT)*cbvcount);
+		memset(desdata, 0, sizeof(UINT)*desccount);
 		{
 			std::lock_guard<std::mutex> lock(m_sDesMutex);
 			UINT* desd;
@@ -770,7 +770,7 @@ DECLARE_FUNCTIONPTR(void, D3D12SetGraphicsRootDescriptorTable, ID3D12GraphicsCom
 				desd = ResourceVectorData::desmap6;
 			}
 			desd = desd + offset;
-			memcpy(desdata, desd, sizeof(UINT)*cbvcount);
+			memcpy(desdata, desd, sizeof(UINT)*desccount);
 		}
 
 		for (UINT i = 0; i < cbvcount; i++)
@@ -782,6 +782,13 @@ DECLARE_FUNCTIONPTR(void, D3D12SetGraphicsRootDescriptorTable, ID3D12GraphicsCom
 				streamInstance->CBMap.insert(newptr);
 				WriteTheCB(newptr, ptr, i, streamInstance);
 			}
+		}
+
+		for (UINT i = cbvcount; i < desccount; i++)
+		{
+			size_t newptr = desdata[i]; 
+			streamInstance->write(newptr);
+		
 		}
 	}
 	RecordEnd
