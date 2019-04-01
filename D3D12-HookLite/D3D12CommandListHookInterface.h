@@ -787,6 +787,13 @@ DECLARE_FUNCTIONPTR(void, D3D12SetGraphicsRootDescriptorTable, ID3D12GraphicsCom
 		for (UINT i = cbvcount; i < desccount; i++)
 		{
 			size_t newptr = desdata[i]; 
+
+			/*if (newptr == 0x23)
+			{
+				char buf[256];
+				sprintf_s(buf, "2060, there is empty bound here\n");
+				OutputDebugStringA(buf);
+			}*/
 			streamInstance->write(newptr);
 		
 		}
