@@ -376,12 +376,12 @@ const UINT *pSrcDescriptorRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE DescriptorHeaps
 			{
 				for (UINT j = 0; j < pSrcDescriptorRangeSizes[i]; j++)
 				{
-					desmap[offset++] = pSrcDescriptorRangeStarts[i].ptr + j * 0x20;
+					desmap[offset++] = pSrcDescriptorRangeStarts[i].ptr + j * descriptorsize;
 				}
 			}
 		}
 	}
-	if (instancestream->beginRecordPresent == true)
+	//if (instancestream->beginRecordPresent == true)
 	{
 		instancestream->write(Device_CopyDescriptors);
 		instancestream->write(dDevice);
@@ -458,11 +458,11 @@ D3D12_CPU_DESCRIPTOR_HANDLE SrcDescriptorRangeStart, D3D12_DESCRIPTOR_HEAP_TYPE 
 		{
 			for (UINT i = 0; i < NumDescriptors; i++)
 			{
-				desmap[offset++] = SrcDescriptorRangeStart.ptr + i * 0x20;
+				desmap[offset++] = SrcDescriptorRangeStart.ptr + i * descriptorsize;
 			}
 		}
 	}
-	if (instancestream->beginRecordPresent == true)
+	//if (instancestream->beginRecordPresent == true)
 	{
 		instancestream->write(Device_CopyDescriptorsSimple);
 
