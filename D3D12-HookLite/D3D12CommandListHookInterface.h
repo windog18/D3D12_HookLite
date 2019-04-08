@@ -727,10 +727,6 @@ DECLARE_FUNCTIONPTR(void, D3D12SetGraphicsRootDescriptorTable, ID3D12GraphicsCom
 	streamInstance->write(RootParameterIndex);
 	streamInstance->write(BaseDescriptor);
 
-
-	
-	
-
 	if (streamInstance->beginRecordPresent)
 	{
 		bool cst = true;

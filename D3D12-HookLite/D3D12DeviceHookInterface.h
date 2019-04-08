@@ -381,31 +381,7 @@ const UINT *pSrcDescriptorRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE DescriptorHeaps
 			}
 		}
 	}
-	//if (instancestream->beginRecordPresent == true)
-	{
-		instancestream->write(Device_CopyDescriptors);
-		instancestream->write(dDevice);
-		instancestream->write(NumDestDescriptorRanges);
-		instancestream->write(DescriptorHeapsType);
-		for (UINT i = 0; i < NumDestDescriptorRanges; i++)
-		{
-			instancestream->write(pDestDescriptorRangeStarts[i]);
-			instancestream->write(pDestDescriptorRangeSizes[i]);
-		}
 
-		instancestream->write(NumSrcDescriptorRanges);
-
-		for (UINT i = 0; i < NumSrcDescriptorRanges; i++) {
-			instancestream->write(pSrcDescriptorRangeStarts[i]);
-			if (pSrcDescriptorRangeSizes == NULL) {
-				UINT oneVal = 1;
-				instancestream->write(oneVal);
-			}
-			else {
-				instancestream->write(pSrcDescriptorRangeSizes[i]);
-			}
-		}
-	}
 
 	RecordEnd
 
@@ -462,16 +438,7 @@ D3D12_CPU_DESCRIPTOR_HANDLE SrcDescriptorRangeStart, D3D12_DESCRIPTOR_HEAP_TYPE 
 			}
 		}
 	}
-	//if (instancestream->beginRecordPresent == true)
-	{
-		instancestream->write(Device_CopyDescriptorsSimple);
 
-		instancestream->write(dDevice);
-		instancestream->write(NumDescriptors);
-		instancestream->write(DestDescriptorRangeStart);
-		instancestream->write(SrcDescriptorRangeStart);
-		instancestream->write(DescriptorHeapsType);
-	}
 	
 	RecordEnd
 

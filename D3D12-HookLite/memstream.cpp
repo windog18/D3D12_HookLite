@@ -113,26 +113,25 @@ void MemStream::write(const void* pdata, size_t datasize)
 
 void MemStream::write(CommandEnum enu)
 {
-	if (beginRecordPresent == false)
+	
+	if (prepareendfile == true)
 	{
-		if (prepareendfile == true)
-		{
-			prepareendfile = false;
-			write(CommandEnum::end_File);
-			beginRecordPresent = true;
-		}
+		prepareendfile = false;
+		beginRecordPresent = true;
+		write(CommandEnum::SWAPCHAIN_PRESENT);
 	}
+	
 
 	int datasize = sizeof(CommandEnum);
 	WriteToMemStream(&enu, datasize);
 	
-	/*{
+	{
 		std::lock_guard<std::mutex> locker(m_gMutex);
 		std::string commandName = enum_to_string(enu);
 		commandName = commandName + "\n";
 
 		nameListCache << commandName;
-	}*/
+	}
 
 	
 }

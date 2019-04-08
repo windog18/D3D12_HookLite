@@ -72,7 +72,9 @@ void TempCluster::SetEndFileForAll()
 {
 	std::lock_guard<std::mutex> guard(m_sMutex);
 	{
-		for (std::map<DWORD, MemStream *>::iterator it = m_sRecordMemStreamMap.begin(); it != m_sRecordMemStreamMap.end(); it++) {
+		for (std::map<DWORD, MemStream *>::iterator it = m_sRecordMemStreamMap.begin(); it != m_sRecordMemStreamMap.end(); it++)
+		{
+			it->second->CBMap.clear();
 			it->second->prepareendfile = true;
 		}
 	}

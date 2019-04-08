@@ -51,8 +51,6 @@ long __stdcall hkPresent12(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT F
 			}
 			}
 
-
-
 	}
 
 	static bool OtherInit = true;
@@ -66,19 +64,9 @@ long __stdcall hkPresent12(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT F
 		aInitOnce = false;
 	}
 
-
-	streaminstance->write(SWAPCHAIN_PRESENT);
 	streaminstance->beginRecordPresent = true;
-	
-	if (OtherInit == true)
-	{
-		TempCluster::GetInstance()->SetEndFileForAll();
-		OtherInit = false;
-	}
-
-	//streaminstance->CBMap.clear();
-	//ResourceVectorData::WriteStream(streaminstance);
-	
+	TempCluster::GetInstance()->SetEndFileForAll();
+		
 	RecordSpecialEnd
 
 	if (TempCluster::GetInstance()->IsRecordingEnd()) {
