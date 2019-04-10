@@ -125,6 +125,7 @@ void MemStream::write(CommandEnum enu)
 	int datasize = sizeof(CommandEnum);
 	WriteToMemStream(&enu, datasize);
 	
+/*
 	{
 		std::lock_guard<std::mutex> locker(m_gMutex);
 		std::string commandName = enum_to_string(enu);
@@ -132,6 +133,7 @@ void MemStream::write(CommandEnum enu)
 
 		nameListCache << commandName;
 	}
+*/
 
 	
 }
