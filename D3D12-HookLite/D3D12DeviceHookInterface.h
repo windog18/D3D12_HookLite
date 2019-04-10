@@ -143,9 +143,6 @@ DECLARE_FUNCTIONPTR(long, D3D12CreateDescriptorHeap, ID3D12Device *dDevice, cons
 	if (pDescriptorHeapDesc->Type == D3D12_DESCRIPTOR_HEAP_TYPE_RTV && 
 		pDescriptorHeapDesc->NumDescriptors >1)
 	{
-		char buf[256];
-		sprintf_s(buf, "2060,the buf is %ld ", cpuhandle.ptr);
-		OutputDebugStringA(buf);
 
 		desrthandleptr = cpuhandle.ptr;
 	}
@@ -153,10 +150,6 @@ DECLARE_FUNCTIONPTR(long, D3D12CreateDescriptorHeap, ID3D12Device *dDevice, cons
 	if (pDescriptorHeapDesc->Type == D3D12_DESCRIPTOR_HEAP_TYPE_RTV &&
 		pDescriptorHeapDesc->NumDescriptors == 1)
 	{
-
-		char buf[256];
-		sprintf_s(buf, "2060,the buf is %ld ", cpuhandle.ptr);
-		OutputDebugStringA(buf);
 		lidesrthandleptr = cpuhandle.ptr;
 	}
 
@@ -520,6 +513,8 @@ DECLARE_FUNCTIONPTR(D3D12_HEAP_PROPERTIES, D3D12GetCustomHeapProperties, ID3D12D
 	return oD3D12GetCustomHeapProperties(dDevice, nodeMask, heapType);
 }
 
+static INT64 bufferindex = 0;
+
 DECLARE_FUNCTIONPTR(long, D3D12CreateCommittedResource, ID3D12Device *dDevice,
 const D3D12_HEAP_PROPERTIES *pHeapProperties,
 D3D12_HEAP_FLAGS HeapFlags,
@@ -538,6 +533,8 @@ void **ppvResource) //27
 	RecordStart
 	MemStream* streaminstance = GetStreamFromThreadID();
 	streaminstance->write(Device_CreateCommittedResource);
+	streaminstance->write(bufferindex);
+	bufferindex++;
 	streaminstance->write(dDevice);
 	streaminstance->writePointerValue(pHeapProperties);
 	streaminstance->write(HeapFlags);
@@ -546,7 +543,6 @@ void **ppvResource) //27
 	streaminstance->writePointerValue(pOptimizedClearValue);
 	streaminstance->write(riidResource);
 	streaminstance->write(pres);
-	//
 	D3D12_GPU_VIRTUAL_ADDRESS gpuadr =  pres->GetGPUVirtualAddress();
 	streaminstance->write(gpuadr);
 
@@ -591,6 +587,8 @@ DECLARE_FUNCTIONPTR(long, D3D12CreateHeap, ID3D12Device *dDevice, const D3D12_HE
 	return res;
 }
 
+
+
 DECLARE_FUNCTIONPTR(long, D3D12CreatePlacedResource, ID3D12Device *dDevice, ID3D12Heap *pHeap, UINT64 HeapOffset, const D3D12_RESOURCE_DESC *pDesc,
 D3D12_RESOURCE_STATES InitialState, const D3D12_CLEAR_VALUE *pOptimizedClearValue, REFIID riid, void **ppvResource) //29
 {
@@ -603,6 +601,8 @@ D3D12_RESOURCE_STATES InitialState, const D3D12_CLEAR_VALUE *pOptimizedClearValu
 
 	MemStream* streaminstance = GetStreamFromThreadID();
 	streaminstance->write(Device_CreatePlacedResource);
+	streaminstance->write(bufferindex);
+	bufferindex++;
 	streaminstance->write(dDevice);
 	streaminstance->write(pHeap);
 	streaminstance->write(desc);
@@ -624,6 +624,10 @@ const D3D12_CLEAR_VALUE *pOptimizedClearValue, REFIID riid, void **ppvResource) 
 	RecordStart
 	MemStream* streaminstance = GetStreamFromThreadID();
 	streaminstance->write(Device_CreateReservedResource);
+	
+	streaminstance->write(bufferindex);
+	bufferindex++;
+
 	streaminstance->write(dDevice);
 	streaminstance->write(*pDesc);
 	streaminstance->write(InitialState);
