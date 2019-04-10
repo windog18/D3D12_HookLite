@@ -168,11 +168,32 @@ public:
 	
 };
 
-static UINT64 desgpuadr5;
-static size_t descpuadr5;
+static UINT64 desgpuadr5 = 0;
+static size_t descpuadr5 = 0;
 
-static UINT64 desgpuadr6;
-static size_t descpuadr6;
+static UINT64 desgpuadr6 = 0;
+static size_t descpuadr6 = 0;
+
+static size_t desrthandleptr = 0;
+static size_t lidesrthandleptr = 0;
+
+
+struct RTData
+{
+	ID3D12Resource* pres;
+	D3D12_RENDER_TARGET_VIEW_DESC desc;
+};
+
+class RTDesData 
+{
+private:
+	static RTData rtarray[5000];
+	static std::mutex m_sMutex;
+public:
+	static void setRTdata(size_t offset,RTData& rtdata);
+	static RTData getRTdata(size_t offset);
+
+};
 
 
 

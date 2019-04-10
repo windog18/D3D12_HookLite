@@ -1016,16 +1016,35 @@ BOOL RTsSingleHandleToDescriptorRange, const D3D12_CPU_DESCRIPTOR_HANDLE *pDepth
 	IID riid = __uuidof(ID3D12Device);
 	dCommandList->GetDevice(riid, (void**)&pdevice);
 	streamInstance->write(NumRenderTargetDescriptors);
+
+	
 	if (NumRenderTargetDescriptors > 0)
 	{
 		for (UINT i = 0; i < NumRenderTargetDescriptors; i++)
 		{
 			streamInstance->write(pRenderTargetDescriptors[i]);
+
+			if (pRenderTargetDescriptors[i].ptr == lidesrthandleptr)
+			{
+				size_t offset = 4600;
+				RTData  rtdata = RTDesData::getRTdata(offset);
+				streamInstance->write(rtdata);
+			}
+			else
+			{
+				size_t offset = (pRenderTargetDescriptors[i].ptr - desrthandleptr) >> 5;
+				RTData  rtdata = RTDesData::getRTdata(offset);
+				streamInstance->write(rtdata);
+			}
 		}
 	}
 
-	streamInstance->write(RTsSingleHandleToDescriptorRange);
+	
 
+
+
+
+	streamInstance->write(RTsSingleHandleToDescriptorRange);
 	streamInstance->writePointerValue(pDepthStencilDescriptor);
 
 	

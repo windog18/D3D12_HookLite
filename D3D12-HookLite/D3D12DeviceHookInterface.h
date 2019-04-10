@@ -139,6 +139,27 @@ DECLARE_FUNCTIONPTR(long, D3D12CreateDescriptorHeap, ID3D12Device *dDevice, cons
 	streaminstance->write(gpuhandle);
 	streaminstance->write(descriptorsize);
 
+
+	if (pDescriptorHeapDesc->Type == D3D12_DESCRIPTOR_HEAP_TYPE_RTV && 
+		pDescriptorHeapDesc->NumDescriptors >1)
+	{
+		char buf[256];
+		sprintf_s(buf, "2060,the buf is %ld ", cpuhandle.ptr);
+		OutputDebugStringA(buf);
+
+		desrthandleptr = cpuhandle.ptr;
+	}
+
+	if (pDescriptorHeapDesc->Type == D3D12_DESCRIPTOR_HEAP_TYPE_RTV &&
+		pDescriptorHeapDesc->NumDescriptors == 1)
+	{
+
+		char buf[256];
+		sprintf_s(buf, "2060,the buf is %ld ", cpuhandle.ptr);
+		OutputDebugStringA(buf);
+		lidesrthandleptr = cpuhandle.ptr;
+	}
+
 	if (cpuhandle.ptr % 32 == 5)
 	{
 		desgpuadr5 = gpuhandle.ptr;
@@ -223,6 +244,8 @@ DECLARE_FUNCTIONPTR(void, D3D12CreateConstantBufferView, ID3D12Device *dDevice, 
 	return;
 }
 
+static UINT64 shaderindex = 0;
+
 DECLARE_FUNCTIONPTR(void, D3D12CreateShaderResourceView, ID3D12Device *dDevice, ID3D12Resource *pResource, const D3D12_SHADER_RESOURCE_VIEW_DESC *pDesc, D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor) //18
 {
 	LOG_ONCE(__FUNCTION__);
@@ -231,9 +254,16 @@ DECLARE_FUNCTIONPTR(void, D3D12CreateShaderResourceView, ID3D12Device *dDevice, 
 
 	RecordStart
 	MemStream* streaminstance = GetStreamFromThreadID();
+
+	
 	streaminstance->write(Device_CreateShaderResourceView);
+	
+
 	streaminstance->write(dDevice);
 	streaminstance->write(pResource);
+	
+	shaderindex++;
+	streaminstance->write(shaderindex);
 	if (pResource != NULL)
 	{
 		D3D12_RESOURCE_DESC desc = pResource->GetDesc();
@@ -294,6 +324,38 @@ const D3D12_RENDER_TARGET_VIEW_DESC *pDesc, D3D12_CPU_DESCRIPTOR_HANDLE DestDesc
 	streaminstance->writePointerValue(pDesc);
 	streaminstance->write(DestDescriptor);
 	RecordEnd
+
+	if (DestDescriptor.ptr == lidesrthandleptr)
+	{
+		size_t offset = (DestDescriptor.ptr - lidesrthandleptr)/32;
+		offset += 4600;
+
+
+		RTData rtdata;
+		if (pDesc != NULL)
+		{
+			rtdata.desc = *pDesc;
+		}
+		rtdata.pres = pResource;
+		RTDesData::setRTdata(offset, rtdata);
+
+		
+	}
+	else
+	{
+		size_t offset = (DestDescriptor.ptr - desrthandleptr) >> 5;
+
+		RTData rtdata;
+		if (pDesc != NULL)
+		{
+			rtdata.desc = *pDesc;
+		}
+		rtdata.pres = pResource;
+		RTDesData::setRTdata(offset, rtdata);
+
+	}
+	
+
 
 }
 

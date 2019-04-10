@@ -24,7 +24,23 @@ std::mutex ResourceVectorData::m_sMutex2;
 UINT* ResourceVectorData::desmap5 = NULL;
 UINT* ResourceVectorData::desmap6 = NULL;
 
+RTData RTDesData::rtarray[5000];
+std::mutex RTDesData::m_sMutex;
 
+
+void RTDesData::setRTdata(size_t offset, RTData& rtdata)
+{
+	
+	std::lock_guard<std::mutex> guard(m_sMutex);
+	rtarray[offset] = rtdata;
+	
+}
+
+RTData RTDesData::getRTdata(size_t offset)
+{
+	std::lock_guard<std::mutex> guard(m_sMutex);
+	return rtarray[offset];
+}
 
 TempCluster * TempCluster::m_sSingleton = nullptr;
 
