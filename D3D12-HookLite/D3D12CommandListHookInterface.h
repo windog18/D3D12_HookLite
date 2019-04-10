@@ -1039,13 +1039,18 @@ BOOL RTsSingleHandleToDescriptorRange, const D3D12_CPU_DESCRIPTOR_HANDLE *pDepth
 		}
 	}
 
-	
-
-
-
 
 	streamInstance->write(RTsSingleHandleToDescriptorRange);
+
 	streamInstance->writePointerValue(pDepthStencilDescriptor);
+
+
+	if ( pDepthStencilDescriptor != NULL )
+	{
+		UINT offset = (pDepthStencilDescriptor->ptr - dsvdesrthandleptr)/8;
+		DSVData dsvdata = RTDesData::getDSVdata(offset);
+		streamInstance->write(dsvdata);
+	}
 
 	
 	RecordEnd

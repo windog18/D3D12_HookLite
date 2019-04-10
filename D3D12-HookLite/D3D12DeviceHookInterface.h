@@ -139,6 +139,11 @@ DECLARE_FUNCTIONPTR(long, D3D12CreateDescriptorHeap, ID3D12Device *dDevice, cons
 	streaminstance->write(gpuhandle);
 	streaminstance->write(descriptorsize);
 
+	if ( pDescriptorHeapDesc->Type == D3D12_DESCRIPTOR_HEAP_TYPE_DSV )
+	{
+		dsvdesrthandleptr = cpuhandle.ptr;
+	}
+
 
 	if (pDescriptorHeapDesc->Type == D3D12_DESCRIPTOR_HEAP_TYPE_RTV && 
 		pDescriptorHeapDesc->NumDescriptors >1)
@@ -311,11 +316,11 @@ const D3D12_RENDER_TARGET_VIEW_DESC *pDesc, D3D12_CPU_DESCRIPTOR_HANDLE DestDesc
 	oD3D12CreateRenderTargetView(dDevice, pResource, pDesc, DestDescriptor);
 	RecordStart
 	MemStream* streaminstance = GetStreamFromThreadID();
-	streaminstance->write(Device_CreateRenderTargetView);
-	streaminstance->write(dDevice);
-	streaminstance->write(pResource);
-	streaminstance->writePointerValue(pDesc);
-	streaminstance->write(DestDescriptor);
+// 	streaminstance->write(Device_CreateRenderTargetView);
+// 	streaminstance->write(dDevice);
+// 	streaminstance->write(pResource);
+// 	streaminstance->writePointerValue(pDesc);
+// 	streaminstance->write(DestDescriptor);
 	RecordEnd
 
 	if (DestDescriptor.ptr == lidesrthandleptr)
@@ -331,8 +336,6 @@ const D3D12_RENDER_TARGET_VIEW_DESC *pDesc, D3D12_CPU_DESCRIPTOR_HANDLE DestDesc
 		}
 		rtdata.pres = pResource;
 		RTDesData::setRTdata(offset, rtdata);
-
-		
 	}
 	else
 	{
@@ -361,12 +364,25 @@ const D3D12_DEPTH_STENCIL_VIEW_DESC *pDesc, D3D12_CPU_DESCRIPTOR_HANDLE DestDesc
 	
 	RecordStart
 	MemStream* streaminstance = GetStreamFromThreadID();
-	streaminstance->write(Device_CreateDepthStencilView);
-	streaminstance->write(dDevice);
-	streaminstance->write(pResource);
-	streaminstance->writePointerValue(pDesc);
-	streaminstance->write(DestDescriptor);
+// 	streaminstance->write(Device_CreateDepthStencilView);
+// 	streaminstance->write(dDevice);
+// 	streaminstance->write(pResource);
+// 	streaminstance->writePointerValue(pDesc);
+// 	streaminstance->write(DestDescriptor);
 	RecordEnd
+
+
+	size_t offset = (DestDescriptor.ptr - dsvdesrthandleptr) / 8;
+
+	DSVData dsvdata;
+	if (pDesc != NULL)
+	{
+		dsvdata.desc = *pDesc;
+	}
+	dsvdata.pres = pResource;
+
+	RTDesData::setDSVdata(offset, dsvdata);
+
 }
 
 DECLARE_FUNCTIONPTR(void, D3D12CreateSampler, ID3D12Device *dDevice, const D3D12_SAMPLER_DESC *pDesc, D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor) //22
@@ -513,7 +529,6 @@ DECLARE_FUNCTIONPTR(D3D12_HEAP_PROPERTIES, D3D12GetCustomHeapProperties, ID3D12D
 	return oD3D12GetCustomHeapProperties(dDevice, nodeMask, heapType);
 }
 
-static INT64 bufferindex = 0;
 
 DECLARE_FUNCTIONPTR(long, D3D12CreateCommittedResource, ID3D12Device *dDevice,
 const D3D12_HEAP_PROPERTIES *pHeapProperties,
@@ -533,8 +548,11 @@ void **ppvResource) //27
 	RecordStart
 	MemStream* streaminstance = GetStreamFromThreadID();
 	streaminstance->write(Device_CreateCommittedResource);
-	streaminstance->write(bufferindex);
-	bufferindex++;
+	
+	LARGE_INTEGER counter;
+	QueryPerformanceCounter(&counter);
+	streaminstance->write(counter);
+
 	streaminstance->write(dDevice);
 	streaminstance->writePointerValue(pHeapProperties);
 	streaminstance->write(HeapFlags);
@@ -601,8 +619,11 @@ D3D12_RESOURCE_STATES InitialState, const D3D12_CLEAR_VALUE *pOptimizedClearValu
 
 	MemStream* streaminstance = GetStreamFromThreadID();
 	streaminstance->write(Device_CreatePlacedResource);
-	streaminstance->write(bufferindex);
-	bufferindex++;
+	
+	LARGE_INTEGER counter;
+	QueryPerformanceCounter(&counter);
+	streaminstance->write(counter);
+
 	streaminstance->write(dDevice);
 	streaminstance->write(pHeap);
 	streaminstance->write(desc);
@@ -625,8 +646,9 @@ const D3D12_CLEAR_VALUE *pOptimizedClearValue, REFIID riid, void **ppvResource) 
 	MemStream* streaminstance = GetStreamFromThreadID();
 	streaminstance->write(Device_CreateReservedResource);
 	
-	streaminstance->write(bufferindex);
-	bufferindex++;
+	LARGE_INTEGER counter;
+	QueryPerformanceCounter(&counter);
+	streaminstance->write(counter);
 
 	streaminstance->write(dDevice);
 	streaminstance->write(*pDesc);

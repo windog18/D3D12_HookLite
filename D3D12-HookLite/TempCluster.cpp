@@ -25,8 +25,22 @@ UINT* ResourceVectorData::desmap5 = NULL;
 UINT* ResourceVectorData::desmap6 = NULL;
 
 RTData RTDesData::rtarray[5000];
+DSVData RTDesData::dsvarray[120];
 std::mutex RTDesData::m_sMutex;
 
+
+
+void RTDesData::setDSVdata(size_t offset, DSVData& dsvdata)
+{
+	std::lock_guard<std::mutex> guard(m_sMutex);
+	dsvarray[offset] = dsvdata;
+}
+
+DSVData RTDesData::getDSVdata(size_t offset)
+{
+	std::lock_guard<std::mutex> guard(m_sMutex);
+	return  dsvarray[offset];
+}
 
 void RTDesData::setRTdata(size_t offset, RTData& rtdata)
 {

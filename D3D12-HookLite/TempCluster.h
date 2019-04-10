@@ -177,6 +177,8 @@ static size_t descpuadr6 = 0;
 static size_t desrthandleptr = 0;
 static size_t lidesrthandleptr = 0;
 
+static size_t dsvdesrthandleptr = 0;
+
 
 struct RTData
 {
@@ -184,14 +186,26 @@ struct RTData
 	D3D12_RENDER_TARGET_VIEW_DESC desc;
 };
 
+struct DSVData
+{
+	ID3D12Resource* pres;
+	D3D12_DEPTH_STENCIL_VIEW_DESC desc;
+};
+
 class RTDesData 
 {
 private:
 	static RTData rtarray[5000];
+	static DSVData dsvarray[120];
 	static std::mutex m_sMutex;
 public:
 	static void setRTdata(size_t offset,RTData& rtdata);
+	
 	static RTData getRTdata(size_t offset);
+
+	static void setDSVdata(size_t offset, DSVData& rtdata);
+
+	static DSVData getDSVdata(size_t offset);
 
 };
 
