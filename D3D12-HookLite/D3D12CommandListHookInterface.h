@@ -248,7 +248,7 @@ DECLARE_FUNCTIONPTR(void, D3D12CopyBufferRegion, ID3D12GraphicsCommandList *dCom
 
 
 	RecordStart
-	MemStream *streamInstance = GetStreamFromThreadID();
+	MemStream *streamInstance = GetInitStreamFromThreadID();
 	streamInstance->write(CommandEnum::CommandList_CopyBufferRegion);
 	streamInstance->write(dCommandList);
 	streamInstance->write(pDstBuffer);
@@ -280,7 +280,7 @@ DECLARE_FUNCTIONPTR(void, D3D12CopyTextureRegion, ID3D12GraphicsCommandList *dCo
 	oD3D12CopyTextureRegion(dCommandList, pDst, DstX, DstY, DstZ, pSrc, pSrcBox);
 
 	RecordStart
-	MemStream *streamInstance = GetStreamFromThreadID();
+	MemStream *streamInstance = GetInitStreamFromThreadID();
 	streamInstance->write(CommandEnum::CommandList_CopyTextureRegion);
 	streamInstance->write(dCommandList);
 	streamInstance->writePointerValue(pDst);

@@ -46,7 +46,7 @@ DECLARE_FUNCTIONPTR(HRESULT, D3D12ResourceMap, ID3D12Resource *dResource, UINT s
 
 	HRESULT result = oD3D12ResourceMap(dResource, subresource, pReadRange, ppData);
 	RecordStart
-	MemStream* streaminstance = GetStreamFromThreadID();
+	MemStream* streaminstance = GetInitStreamFromThreadID();
 	streaminstance->write(Resource_Map);
 	streaminstance->write(dResource);
  	streaminstance->write(subresource);
@@ -67,7 +67,7 @@ DECLARE_FUNCTIONPTR(void, D3D12ResourceUnmap, ID3D12Resource *dResource, UINT su
 	oD3D12ResourceUnmap(dResource, subresource, pWrittenRange);
 	ResourceVectorData::addunmapres(dResource);
 	RecordStart
-	MemStream* streaminstance = GetStreamFromThreadID();
+	MemStream* streaminstance = GetInitStreamFromThreadID();
 
 	
 
@@ -100,7 +100,7 @@ DECLARE_FUNCTIONPTR(D3D12_GPU_VIRTUAL_ADDRESS,D3D12GetGPUVirtualAddress, ID3D12R
 	
 	D3D12_GPU_VIRTUAL_ADDRESS res = oD3D12GetGPUVirtualAddress(dResource);
 	RecordStart
-	MemStream* streaminstance = GetStreamFromThreadID();
+	MemStream* streaminstance = GetInitStreamFromThreadID();
 	streaminstance->write(Resource_GetGPUVirtualAddress);
 	streaminstance->write(dResource);
 	streaminstance->write(res);

@@ -312,12 +312,17 @@ public:
 
 	void ResetRecordState();
 	MemStream *GetOrCreateMemStream(DWORD threadID);
+
+	MemStream *GetInitMemStream(DWORD threadID);
 private:
 	static TempCluster *m_sSingleton;
 
 
 	std::mutex m_sMutex;
 	std::map<DWORD, MemStream *> m_sRecordMemStreamMap;
+
+	std::mutex m_sMutex2;
+	std::map<DWORD, MemStream *> m_sInitMemStreamMap;
 
 	int m_RecordState;
 	std::mutex m_recordMutex;
@@ -346,3 +351,7 @@ if( TempCluster::GetInstance()->IsRecordingPresent() ) \
 
 #define GetStreamFromThreadID() \
 TempCluster::GetInstance()->GetOrCreateMemStream(GetCurrentThreadId()); 
+
+
+#define GetInitStreamFromThreadID() \
+TempCluster::GetInstance()->GetInitMemStream(GetCurrentThreadId()); 

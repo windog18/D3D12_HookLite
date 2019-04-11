@@ -90,10 +90,21 @@ TempCluster::~TempCluster()
 
 void TempCluster::SetFrameTagForAll(CommandEnum Tag)
 {
+	{
 	std::lock_guard<std::mutex> guard(m_sMutex);
 	{
 		for (std::map<DWORD, MemStream *>::iterator it = m_sRecordMemStreamMap.begin(); it != m_sRecordMemStreamMap.end(); it++) {
 			it->second->write(Tag);
+		}
+	}
+	}
+
+	{
+		std::lock_guard<std::mutex> guard(m_sMutex2);
+		{
+			for (std::map<DWORD, MemStream *>::iterator it = m_sInitMemStreamMap.begin(); it != m_sInitMemStreamMap.end(); it++) {
+				it->second->write(Tag);
+			}
 		}
 	}
 }
@@ -117,6 +128,34 @@ void TempCluster::WriteAllBufferToResult()
 	size_t count = m_sRecordMemStreamMap.size();
 	
 	fs::path basePath = fs::path(UWP::Current::Storage::GetTemporaryPath()) / L"DUMP";
+
+
+	for (std::map<DWORD, MemStream *>::iterator it = m_sInitMemStreamMap.begin(); it != m_sInitMemStreamMap.end(); it++)
+	{
+		wstringstream wss;
+
+		wss << "RecordData_";
+		wss << it->first;
+
+		if (GetCurrentThreadId() == it->first)
+		{
+			wss << "_mainThread";
+		}
+		std::error_code ErrorCode;
+
+		fs::path writePath = basePath / wss.str() / L"Init.dat";
+		
+		//OutputDebugStringW(writePath.c_str());
+		if (fs::create_directories(writePath.parent_path(), ErrorCode) == false && ErrorCode) {
+			OutputDebugStringA((std::string("could not create path at: ") + narrow(writePath.c_str())).c_str());
+		}
+		else {
+			std::string charStrs = narrow(writePath.c_str());
+			it->second->writetoFile(charStrs.c_str());
+		}
+	}
+
+
 	for (std::map<DWORD, MemStream *>::iterator it = m_sRecordMemStreamMap.begin(); it != m_sRecordMemStreamMap.end(); it++)
 	{
 		wstringstream wss;
@@ -161,15 +200,43 @@ MemStream * TempCluster::GetOrCreateMemStream(DWORD threadID)
 	return m_sRecordMemStreamMap[threadID];
 }
 
+MemStream * TempCluster::GetInitMemStream(DWORD threadID)
+{
+	std::lock_guard<std::mutex> guard(m_sMutex2);
+	if (m_sInitMemStreamMap.find(threadID) == m_sInitMemStreamMap.end()) {
+
+		MemStream *memStream = new MemStream();
+		memStream->init();
+		m_sInitMemStreamMap.insert(std::make_pair(threadID, memStream));
+
+
+	}
+	return m_sInitMemStreamMap[threadID];
+}
+
+
+
+
 
 void TempCluster::ResetRecordState()
 {
+	{
 	std::lock_guard<std::mutex> guard(m_sMutex);
 	if (m_sRecordMemStreamMap.size() > 0)
 		for (std::map<DWORD, MemStream *>::iterator it = m_sRecordMemStreamMap.begin(); it != m_sRecordMemStreamMap.end(); it++) {
 			delete it->second;
 		}
 	m_sRecordMemStreamMap.clear();
+	}
+
+	{
+		std::lock_guard<std::mutex> guard(m_sMutex2);
+		if (m_sInitMemStreamMap.size() > 0)
+			for (std::map<DWORD, MemStream *>::iterator it = m_sInitMemStreamMap.begin(); it != m_sInitMemStreamMap.end(); it++) {
+				delete it->second;
+			}
+		m_sInitMemStreamMap.clear();
+	}
 }
 
 
