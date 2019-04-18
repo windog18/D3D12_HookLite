@@ -184,6 +184,7 @@ struct RTData
 {
 	ID3D12Resource* pres;
 	D3D12_RENDER_TARGET_VIEW_DESC desc;
+	LARGE_INTEGER counter;
 };
 
 struct DSVData

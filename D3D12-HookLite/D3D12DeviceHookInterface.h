@@ -306,6 +306,10 @@ const D3D12_RENDER_TARGET_VIEW_DESC *pDesc, D3D12_CPU_DESCRIPTOR_HANDLE DestDesc
 	//GlobalGathering::GetInstance()->GatherDevice(dDevice);
 	oD3D12CreateRenderTargetView(dDevice, pResource, pDesc, DestDescriptor);
 
+
+	LARGE_INTEGER counter;
+	QueryPerformanceCounter(&counter);
+
 	if (DestDescriptor.ptr == lidesrthandleptr)
 	{
 		size_t offset = (DestDescriptor.ptr - lidesrthandleptr)/32;
@@ -318,6 +322,7 @@ const D3D12_RENDER_TARGET_VIEW_DESC *pDesc, D3D12_CPU_DESCRIPTOR_HANDLE DestDesc
 			rtdata.desc = *pDesc;
 		}
 		rtdata.pres = pResource;
+		rtdata.counter = counter;
 		RTDesData::setRTdata(offset, rtdata);
 	}
 	else
@@ -330,6 +335,7 @@ const D3D12_RENDER_TARGET_VIEW_DESC *pDesc, D3D12_CPU_DESCRIPTOR_HANDLE DestDesc
 			rtdata.desc = *pDesc;
 		}
 		rtdata.pres = pResource;
+		rtdata.counter = counter;
 		RTDesData::setRTdata(offset, rtdata);
 
 	}
