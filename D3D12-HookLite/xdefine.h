@@ -164,6 +164,8 @@ enum CommandEnum
 	SWAPCHAIN_PRESENT,
 		copy_cstbuf,
 		copy_cstmap,
+		frame_vb,
+		frame_ib,
 		last_frame,
 		end_frame,
 		end_File,

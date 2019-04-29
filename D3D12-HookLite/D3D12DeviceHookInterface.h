@@ -528,6 +528,8 @@ void **ppvResource) //27
 	D3D12_GPU_VIRTUAL_ADDRESS gpuadr =  pres->GetGPUVirtualAddress();
 	streaminstance->write(gpuadr);
 
+
+
 	if (gpuadr != 0)
 	{
 		if (InitialResourceState&D3D12_RESOURCE_STATE_GENERIC_READ || InitialResourceState & D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER)

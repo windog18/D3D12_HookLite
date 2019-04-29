@@ -38,7 +38,8 @@ DECLARE_FUNCTIONPTR(HRESULT, D3D12ResourceGetDevice, ID3D12Resource *dResource, 
 	LOG_ONCE(__FUNCTION__);
 	return oD3D12ResourceGetDevice(dResource, riid, ppvDevice);
 }*/
-
+UINT8* hackbufferdata = nullptr;
+UINT8* indexbufferdata = nullptr;
 DECLARE_FUNCTIONPTR(HRESULT, D3D12ResourceMap, ID3D12Resource *dResource, UINT subresource, const D3D12_RANGE *pReadRange, void **ppData) //8
 {
 
@@ -53,6 +54,17 @@ DECLARE_FUNCTIONPTR(HRESULT, D3D12ResourceMap, ID3D12Resource *dResource, UINT s
  	streaminstance->writePointerValue(pReadRange);
 	RecordEnd
 	D3D12_RESOURCE_DESC desc = dResource->GetDesc();
+
+	if (desc.Width == 0x258000)
+	{
+		hackbufferdata = (UINT8*)(*ppData);
+	}
+
+	if (desc.Width == 0x5dc00)
+	{
+		indexbufferdata = (UINT8*)(*ppData);
+	}
+
 	if (desc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
 	{
 		ResourceVectorData::addmapres(dResource, desc.Width, *ppData);

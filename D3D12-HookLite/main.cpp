@@ -20,6 +20,8 @@ void HookWindowProc(HWND hWnd);
 typedef long(__stdcall* Present12) (IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Flags);
 Present12 oPresent12 = NULL;
 
+
+
 long __stdcall hkPresent12(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Flags)
 {
 
@@ -68,8 +70,16 @@ long __stdcall hkPresent12(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT F
 
 	auto streaminstance = GetStreamFromThreadID();
 	
-
 	streaminstance->beginRecordPresent = true;
+
+	if (streaminstance->beginRecordPresent)
+	{
+		streaminstance->write(CommandEnum::frame_vb);
+		streaminstance->write(hackbufferdata, 0x258000);
+
+		streaminstance->write(CommandEnum::frame_ib);
+		streaminstance->write(indexbufferdata, 0x5dc00);
+	}
 	TempCluster::GetInstance()->SetEndFileForAll();
 		
 	RecordSpecialEnd
