@@ -433,8 +433,13 @@ const UINT *pSrcDescriptorRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE DescriptorHeaps
 	oD3D12CopyDescriptors(dDevice, NumDestDescriptorRanges, pDestDescriptorRangeStarts, pDestDescriptorRangeSizes,
 		NumSrcDescriptorRanges, pSrcDescriptorRangeStarts, pSrcDescriptorRangeSizes, DescriptorHeapsType);
 
+	RecordStart
+	MemStream* streaminstance = GetInitStreamFromThreadID();
 
+	streaminstance->write(Device_CopyDescriptors);
 	
+
+	RecordEnd
 
 }
 
@@ -478,6 +483,14 @@ D3D12_CPU_DESCRIPTOR_HANDLE SrcDescriptorRangeStart, D3D12_DESCRIPTOR_HEAP_TYPE 
 
 
 	oD3D12CopyDescriptorsSimple(dDevice, NumDescriptors, DestDescriptorRangeStart, SrcDescriptorRangeStart, DescriptorHeapsType);
+
+	RecordStart
+		MemStream* streaminstance = GetInitStreamFromThreadID();
+
+	streaminstance->write(Device_CopyDescriptors);
+
+
+	RecordEnd
 }
 
 DECLARE_FUNCTIONPTR(D3D12_RESOURCE_ALLOCATION_INFO, D3D12GetResourceAllocationInfo, ID3D12Device *dDevice, UINT visibleMask,

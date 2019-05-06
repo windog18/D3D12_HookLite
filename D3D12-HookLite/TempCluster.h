@@ -109,17 +109,52 @@ public:
 		void* pdata;
 	};
 
-	static void addmapres(ID3D12Resource* pres, UINT64 bufsize, void* pdata) {
+	static void addmapres(UINT64 gpuadr, void* pdata) {
+
 		std::lock_guard<std::mutex> lock(m_sMutex2);
-		bufstr bstr;
-		bstr.bufsize = bufsize;
-		bstr.pdata = pdata;
-		unmapres.insert(std::make_pair(pres,bstr));
+		unmapres.insert(std::make_pair(gpuadr,pdata));
+
 	}
 
-	static void addunmapres(ID3D12Resource* pres) {
+	static void addunmapres(UINT64 gpuadr) {
+
 		std::lock_guard<std::mutex> lock(m_sMutex2);
-		unmapres.erase(pres);
+		unmapres.erase(gpuadr);
+
+	}
+
+	static void savemapres(UINT64 gpuadr, MemStream* pstream)
+	{
+		
+		void* pdata = NULL;
+		{
+			std::lock_guard<std::mutex> lock(m_sMutex2);
+			pdata = unmapres[gpuadr];
+		}
+
+		{
+			std::lock_guard<std::mutex> lock(m_sMutex3);
+			if (datamap.find(pdata) == datamap.end())
+			{
+				bool hasdata = true;
+				pstream->write(hasdata);
+				INT64 dataadr = (INT64)pdata;
+				pstream->write(dataadr);
+				pstream->write(pdata, 0x10000);
+				datamap.insert(pdata);
+			}
+			else
+			{
+				bool hasdata = false;
+				pstream->write(hasdata);
+			}
+		}
+	}
+
+	static void clearmapres()
+	{
+		std::lock_guard<std::mutex> lock(m_sMutex3);
+		datamap.clear();
 	}
 
 	static size_t getCBResCount() {
@@ -132,7 +167,6 @@ public:
 		return unmapres.size();
 	}
 
-	static UINT WriteStream(MemStream* pstream);
 	static void WriteDesMap(MemStream* pstream);
 
 	static UINT* getHandleMap5()
@@ -160,7 +194,11 @@ private:
 	static std::set<ID3D12Resource*> cstreset;
 	static std::mutex m_sMutex;
 
-	static std::map<ID3D12Resource*, bufstr> unmapres;
+	static std::set<void*> datamap;
+	static std::mutex m_sMutex3;
+
+
+	static std::map<UINT64, void*> unmapres;
 	static std::mutex m_sMutex2;
 public:
 	static UINT* desmap5;

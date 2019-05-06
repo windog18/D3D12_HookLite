@@ -885,6 +885,14 @@ DECLARE_FUNCTIONPTR(void, D3D12SetGraphicsRootConstantBufferView, ID3D12Graphics
 	streamInstance->write(dCommandList);
 	streamInstance->write(RootParameterIndex);
 	streamInstance->write(BufferLocation);
+
+	if (streamInstance->beginRecordPresent)
+	{
+		UINT64 gpuadr = (BufferLocation >> 16) << 16 ;
+
+		ResourceVectorData::savemapres(gpuadr, streamInstance);
+	}
+
  	RecordEnd
 
 	return;

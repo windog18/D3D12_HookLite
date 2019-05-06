@@ -17,8 +17,11 @@ std::vector<CBResstr>  ResourceVectorData::m_sTempVector;
 std::mutex ResourceVectorData::m_sMutex;
 std::set<ID3D12Resource*> ResourceVectorData::cstreset;
 
-std::map<ID3D12Resource*, ResourceVectorData::bufstr> ResourceVectorData::unmapres;
+std::map<UINT64, void*> ResourceVectorData::unmapres;
 std::mutex ResourceVectorData::m_sMutex2;
+
+std::set<void*> ResourceVectorData::datamap;
+std::mutex ResourceVectorData::m_sMutex3;
 
 
 UINT* ResourceVectorData::desmap5 = NULL;
@@ -253,36 +256,6 @@ inline void ResetRecordState()
 }
 
 
-UINT ResourceVectorData::WriteStream(MemStream* pstream)
-{
-	UINT count = 0;
-	{
-		std::lock_guard<std::mutex> lock(m_sMutex2);
-		std::map<ID3D12Resource*, bufstr>::iterator iter;
-		std::vector<bufstr> bufarray;
-		std::vector<ID3D12Resource*> resarray;
-		for ( iter = unmapres.begin(); iter != unmapres.end(); iter++ )
-		{
-			if ( cstreset.find(iter->first) != cstreset.end() )
-			{
-				bufarray.push_back(iter->second);
-				resarray.push_back(iter->first);
-				count++;
-			}
-		}
-		pstream->write(copy_cstbuf);
-		pstream->write(count);
-
-		for (size_t i = 0; i < bufarray.size(); i++)
-		{
-			bufstr& bstr = bufarray[i];
-			pstream->write(resarray[i]);
-			pstream->write(bstr.bufsize);
-			pstream->write(bstr.pdata, bstr.bufsize);
-		}
-	}
-	return count;
-}
 
 void ResourceVectorData::WriteDesMap(MemStream* pstream)
 {

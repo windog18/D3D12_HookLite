@@ -79,6 +79,13 @@ long __stdcall hkPresent12(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT F
 
 		streaminstance->write(CommandEnum::frame_ib);
 		streaminstance->write(indexbufferdata, 0x5dc00);
+
+		ResourceVectorData::clearmapres();
+
+		/*UINT umapcount = ResourceVectorData::getunmapresCount();
+		char buf[256];
+		sprintf_s(buf, "2060 the buf is %d", umapcount);
+		OutputDebugStringA(buf);*/
 	}
 	TempCluster::GetInstance()->SetEndFileForAll();
 		

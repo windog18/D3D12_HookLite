@@ -40,6 +40,21 @@ DECLARE_FUNCTIONPTR(HRESULT, D3D12ResourceGetDevice, ID3D12Resource *dResource, 
 }*/
 UINT8* hackbufferdata = nullptr;
 UINT8* indexbufferdata = nullptr;
+DECLARE_FUNCTIONPTR(D3D12_GPU_VIRTUAL_ADDRESS, D3D12GetGPUVirtualAddress, ID3D12Resource * dResource) //11
+{
+	LOG_ONCE(__FUNCTION__);
+
+	D3D12_GPU_VIRTUAL_ADDRESS res = oD3D12GetGPUVirtualAddress(dResource);
+	RecordStart
+	MemStream* streaminstance = GetInitStreamFromThreadID();
+	streaminstance->write(Resource_GetGPUVirtualAddress);
+	streaminstance->write(dResource);
+	streaminstance->write(res);
+	RecordEnd
+
+	return res;
+}
+
 DECLARE_FUNCTIONPTR(HRESULT, D3D12ResourceMap, ID3D12Resource *dResource, UINT subresource, const D3D12_RANGE *pReadRange, void **ppData) //8
 {
 
@@ -65,10 +80,13 @@ DECLARE_FUNCTIONPTR(HRESULT, D3D12ResourceMap, ID3D12Resource *dResource, UINT s
 		indexbufferdata = (UINT8*)(*ppData);
 	}
 
-	if (desc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
+	if (desc.Width = 0x10000)
 	{
-		ResourceVectorData::addmapres(dResource, desc.Width, *ppData);
+		UINT64 gpuadr = oD3D12GetGPUVirtualAddress(dResource);
+		ResourceVectorData::addmapres(gpuadr, *ppData);
 	}
+
+	
 	return result;
 }
 
@@ -77,11 +95,9 @@ DECLARE_FUNCTIONPTR(void, D3D12ResourceUnmap, ID3D12Resource *dResource, UINT su
 	LOG_ONCE(__FUNCTION__);
 
 	oD3D12ResourceUnmap(dResource, subresource, pWrittenRange);
-	ResourceVectorData::addunmapres(dResource);
+	
 	RecordStart
 	MemStream* streaminstance = GetInitStreamFromThreadID();
-
-	
 
 	streaminstance->write(Resource_Unmap);
 	streaminstance->write(dResource);
@@ -90,9 +106,10 @@ DECLARE_FUNCTIONPTR(void, D3D12ResourceUnmap, ID3D12Resource *dResource, UINT su
 
 	RecordEnd
 	D3D12_RESOURCE_DESC desc = dResource->GetDesc();
-	if (desc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
+	if ( desc.Width == 0x10000 )
 	{
-		ResourceVectorData::addunmapres(dResource);
+		UINT64 gpuadr = oD3D12GetGPUVirtualAddress(dResource);
+		ResourceVectorData::addunmapres(gpuadr);
 	}
 }
 
@@ -106,27 +123,7 @@ DECLARE_FUNCTIONPTR(D3D12_RESOURCE_DESC, D3D12ResourceGetDesc, ID3D12Resource *d
 }*/
 
 
-DECLARE_FUNCTIONPTR(D3D12_GPU_VIRTUAL_ADDRESS,D3D12GetGPUVirtualAddress, ID3D12Resource * dResource) //11
-{
-	LOG_ONCE(__FUNCTION__);
-	
-	D3D12_GPU_VIRTUAL_ADDRESS res = oD3D12GetGPUVirtualAddress(dResource);
-	RecordStart
-	MemStream* streaminstance = GetInitStreamFromThreadID();
-	streaminstance->write(Resource_GetGPUVirtualAddress);
-	streaminstance->write(dResource);
-	streaminstance->write(res);
 
-	/*D3D12_RESOURCE_DESC desc = dResource->GetDesc();
-	ResAndGPuAdr str;
-	str.gpuadr = res;
-	str.pres = dResource;
-	str.ressize = desc.Width;
-	streaminstance->gpuAdrArray.AddValue(str);*/
-	RecordEnd
-
-	return res;
-}
 
 DECLARE_FUNCTIONPTR(long, D3D12WriteToSubresource, ID3D12Resource *dResource, UINT DstSubresource, const D3D12_BOX *pDstBox, const void *pSrcData, UINT SrcRowPitch, UINT SrcDepthPitch)  //12
 {
