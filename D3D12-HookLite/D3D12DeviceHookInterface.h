@@ -85,7 +85,16 @@ ID3D12PipelineState *pInitialState, REFIID riid, void **ppCommandList) //12
 {
 	//GlobalGathering::GetInstance()->GatherDevice(dDevice);
 	LOG_ONCE(__FUNCTION__);
-	return oD3D12CreateCommandList(dDevice, nodeMask, type, pCommandAllocator, pInitialState, riid, ppCommandList);
+	HRESULT ret =  oD3D12CreateCommandList(dDevice, nodeMask, type, pCommandAllocator, pInitialState, riid, ppCommandList);
+	RecordStart
+	MemStream* streaminstance = GetInitStreamFromThreadID();
+	streaminstance->write(Device_CreateCommandList);
+	
+	streaminstance->write(type);
+	streaminstance->write(*ppCommandList);
+	RecordEnd
+
+	return ret;
 }
 
 DECLARE_FUNCTIONPTR(long, D3D12CheckFeatureSupport, ID3D12Device *dDevice, D3D12_FEATURE Feature, void *pFeatureSupportData, UINT FeatureSupportDataSize) //13
