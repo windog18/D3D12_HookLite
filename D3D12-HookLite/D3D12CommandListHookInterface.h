@@ -274,10 +274,121 @@ DECLARE_FUNCTIONPTR(void, D3D12CopyBufferRegion, ID3D12GraphicsCommandList *dCom
 	oD3D12CopyBufferRegion(dCommandList, pDstBuffer, DstOffset, pSrcBuffer, SrcOffset, NumBytes);
 }
 
+struct DDS_PIXELFORMAT {
+	DWORD dwSize;
+	DWORD dwFlags;
+	DWORD dwFourCC;
+	DWORD dwRGBBitCount;
+	DWORD dwRBitMask;
+	DWORD dwGBitMask;
+	DWORD dwBBitMask;
+	DWORD dwABitMask;
+};
+
+typedef struct {
+	DWORD           dwSize;
+	DWORD           dwFlags;
+	DWORD           dwHeight;
+	DWORD           dwWidth;
+	DWORD           dwPitchOrLinearSize;
+	DWORD           dwDepth;
+	DWORD           dwMipMapCount;
+	DWORD           dwReserved1[11];
+	DDS_PIXELFORMAT ddspf;
+	DWORD           dwCaps;
+	DWORD           dwCaps2;
+	DWORD           dwCaps3;
+	DWORD           dwCaps4;
+	DWORD           dwReserved2;
+} DDS_HEADER;
+
+typedef struct {
+	DXGI_FORMAT              dxgiFormat;
+	D3D10_RESOURCE_DIMENSION resourceDimension;
+	UINT                     miscFlag;
+	UINT                     arraySize;
+	UINT                     miscFlags2;
+} DDS_HEADER_DXT10;
+
+int texindex = 0;
 DECLARE_FUNCTIONPTR(void, D3D12CopyTextureRegion, ID3D12GraphicsCommandList *dCommandList, const D3D12_TEXTURE_COPY_LOCATION *pDst, UINT DstX, UINT DstY, UINT DstZ, const D3D12_TEXTURE_COPY_LOCATION *pSrc, const D3D12_BOX *pSrcBox) // 72 + 16
 {
 	LOG_ONCE(__FUNCTION__);
 	oD3D12CopyTextureRegion(dCommandList, pDst, DstX, DstY, DstZ, pSrc, pSrcBox);
+	
+	D3D12_RESOURCE_DESC desc = pSrc->pResource->GetDesc();
+	if (desc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER && DstX == 0 && DstY == 0 && DstZ == 0 && pSrcBox == NULL)
+	{
+
+		if (pDst != NULL)
+		{
+			const D3D12_SUBRESOURCE_FOOTPRINT& footprint = pDst->PlacedFootprint.Footprint;
+			if ((footprint.Format == DXGI_FORMAT_BC6H_UF16 || footprint.Format == DXGI_FORMAT_BC6H_TYPELESS || footprint.Format == DXGI_FORMAT_BC6H_SF16)
+				&& (footprint.Width == 2048 && footprint.Height == 2048))
+			{
+
+				UINT8* pData;
+				auto checkResult = oD3D12ResourceMap(pSrc->pResource, 0, nullptr, reinterpret_cast<void**>(&pData));
+				if (checkResult == S_OK) 
+				{
+					UINT8* copyDataOffset = pData + pSrc->PlacedFootprint.Offset;
+
+					TCHAR filepath[256];
+					swprintf_s(filepath, L"%s/dump/", UWP::Current::Storage::GetTemporaryPath());
+					
+					_wmkdir(filepath);
+
+					TCHAR filename[256];
+					swprintf_s(filename, L"%s/dump/%d.dds", UWP::Current::Storage::GetTemporaryPath(), texindex);
+					texindex++;
+
+					DWORD t1 = 0x20534444;
+					DDS_HEADER head1;
+					head1.dwSize = 124;
+					head1.dwFlags = 659463;
+					head1.dwWidth = 2048;
+					head1.dwHeight = 2048;
+					head1.dwPitchOrLinearSize = 4194304;
+					head1.dwDepth = 1;
+					head1.dwMipMapCount = 1;
+					for (int i = 0; i < 11; i++)
+						head1.dwReserved1[i] = 0;
+					head1.ddspf.dwSize = 32;
+					head1.ddspf.dwFlags = 4;
+					head1.ddspf.dwFourCC = 808540228;
+					head1.ddspf.dwRGBBitCount = 0;
+					head1.ddspf.dwRBitMask = 0;
+					head1.ddspf.dwGBitMask = 0;
+					head1.ddspf.dwBBitMask = 0;
+					head1.ddspf.dwABitMask = 0;
+					head1.dwCaps = 4096;
+					head1.dwCaps2 = 0;
+					head1.dwCaps3 = 0;
+					head1.dwCaps4 = 0;
+					head1.dwReserved2 = 0;
+
+					DDS_HEADER_DXT10 head10_1;
+					head10_1.dxgiFormat = DXGI_FORMAT_BC6H_UF16;
+					head10_1.resourceDimension = D3D10_RESOURCE_DIMENSION_TEXTURE2D;
+					head10_1.miscFlag = 0;
+					head10_1.miscFlags2 = 0;
+					head10_1.arraySize = 1;
+
+
+					//head1.
+					FILE* fnewdds;
+					_wfopen_s(&fnewdds, filename, L"wb");
+					fwrite(&t1, sizeof(DWORD), 1, fnewdds);
+					fwrite(&head1, sizeof(DDS_HEADER), 1, fnewdds);
+					fwrite(&head10_1, sizeof(DDS_HEADER_DXT10), 1, fnewdds);
+
+					fwrite(copyDataOffset, sizeof(UINT8), head1.dwPitchOrLinearSize, fnewdds);
+
+					fclose(fnewdds);
+				}
+			}
+		}
+	}
 
 	RecordStart
 	MemStream *streamInstance = GetInitStreamFromThreadID();

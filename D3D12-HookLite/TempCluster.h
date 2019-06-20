@@ -366,21 +366,29 @@ private:
 	int m_RecordState;
 	std::mutex m_recordMutex;
 };
+/*
 
 #define RecordStart \
 	if( TempCluster::GetInstance()->IsRecordingData() ) \
 	 {\
+*/
 
-/*
+
 #define RecordStart \
 	if( 0 ) \
-	 {\*/
+	 {\
 
 #define RecordEnd \
 	}
 
+/*
 #define RecordSpecialStart \
 if( TempCluster::GetInstance()->IsRecordingPresent() ) \
+	{
+*/
+
+#define RecordSpecialStart \
+if( 0 ) \
 	{
 
 
