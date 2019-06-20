@@ -326,7 +326,8 @@ DECLARE_FUNCTIONPTR(void, D3D12CopyTextureRegion, ID3D12GraphicsCommandList *dCo
 			if ((footprint.Format == DXGI_FORMAT_BC6H_UF16 || footprint.Format == DXGI_FORMAT_BC6H_TYPELESS || footprint.Format == DXGI_FORMAT_BC6H_SF16)
 				&& (footprint.Width == 2048 && footprint.Height == 2048))
 			{
-
+			
+				OutputDebugStringA("2046 the test\n");
 				UINT8* pData;
 				auto checkResult = oD3D12ResourceMap(pSrc->pResource, 0, nullptr, reinterpret_cast<void**>(&pData));
 				if (checkResult == S_OK) 
